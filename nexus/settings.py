@@ -127,9 +127,12 @@ LOGIN_URL = '/accounts/login/'
 LOGIN_REDIRECT_URL = '/'
 LOGOUT_REDIRECT_URL = '/'
 
-# News API Keys (set in .env)
+# News API Keys (set in .env — all optional, RSS feeds work without any)
 NEWSDATA_API_KEY = env('NEWSDATA_API_KEY', default='')
 NEWSAPI_KEY = env('NEWSAPI_KEY', default='')
+GNEWS_API_KEY = env('GNEWS_API_KEY', default='')
+CURRENTS_API_KEY = env('CURRENTS_API_KEY', default='')
+THENEWSAPI_KEY = env('THENEWSAPI_KEY', default='')
 
 # News aggregation settings
 NEWS_CACHE_TTL = env.int('NEWS_CACHE_TTL', default=180)   # seconds

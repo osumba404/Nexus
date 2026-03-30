@@ -10,9 +10,9 @@ class SiteSettingsAdmin(admin.ModelAdmin):
             'fields': ('site_name', 'site_tagline', 'logo', 'hero_banner', 'footer_text')
         }),
         ('API Keys', {
-            'fields': ('newsdata_api_key', 'newsapi_key'),
+            'fields': ('newsdata_api_key', 'newsapi_key', 'gnews_api_key', 'currents_api_key', 'thenewsapi_key'),
             'classes': ('collapse',),
-            'description': 'Keep these secret. They are used server-side only.'
+            'description': 'All optional — the more keys you add, the more articles are fetched. RSS feeds work without any keys.'
         }),
         ('Defaults', {
             'fields': ('default_country', 'default_language')
