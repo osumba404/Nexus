@@ -2,29 +2,25 @@
 <div class="bg-navy-900 border border-navy-700 rounded-xl p-4 sticky top-20">
   <div class="flex items-center justify-between mb-4">
     <h2 class="text-sm font-semibold text-white">Filters</h2>
-    <a href="/" class="text-xs text-gray-500 hover:text-blue-400 transition-colors">Clear all</a>
+    {# ── "Clear all" is a plain full-page navigation — no HTMX.          #}
+    {# This guarantees the entire page (sidebar + feed + URL) resets.     #}
+    <a href="/"
+       class="text-xs text-blue-400 hover:text-white transition-colors font-medium">
+      Clear all
+    </a>
   </div>
 
   <form method="GET" action="/"
-        hx-get="/feed/"
-        hx-target="#feed-container"
-        hx-swap="innerHTML"
-        hx-push-url="true"
-        hx-indicator="#spinner"
-        class="space-y-4"
-        id="filter-form">
+        id="filter-form"
+        class="space-y-4">
 
     <!-- Continent -->
     <div>
       <label class="block text-xs font-medium text-gray-400 mb-1.5">Continent</label>
       <select name="continent"
-              class="w-full bg-navy-800 border border-navy-600 rounded-lg px-3 py-2 text-sm text-gray-200 focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400 transition-colors"
-              hx-get="/feed/"
-              hx-target="#feed-container"
-              hx-swap="innerHTML"
-              hx-include="#filter-form"
-              hx-indicator="#spinner"
-              hx-trigger="change">
+              class="w-full bg-navy-800 border border-navy-600 rounded-lg px-3 py-2 text-sm text-gray-200
+                     focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400 transition-colors"
+              onchange="nexusSubmitFilters()">
         {% for val, label in continents %}
           <option value="{{ val }}" {% if filters.continent == val %}selected{% endif %}>{{ label }}</option>
         {% endfor %}
@@ -35,13 +31,9 @@
     <div>
       <label class="block text-xs font-medium text-gray-400 mb-1.5">Country</label>
       <select name="country"
-              class="w-full bg-navy-800 border border-navy-600 rounded-lg px-3 py-2 text-sm text-gray-200 focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400 transition-colors"
-              hx-get="/feed/"
-              hx-target="#feed-container"
-              hx-swap="innerHTML"
-              hx-include="#filter-form"
-              hx-indicator="#spinner"
-              hx-trigger="change">
+              class="w-full bg-navy-800 border border-navy-600 rounded-lg px-3 py-2 text-sm text-gray-200
+                     focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400 transition-colors"
+              onchange="nexusSubmitFilters()">
         {% for val, label in countries %}
           <option value="{{ val }}" {% if filters.country == val %}selected{% endif %}>{{ label }}</option>
         {% endfor %}
@@ -52,13 +44,10 @@
     <div>
       <label class="block text-xs font-medium text-gray-400 mb-1.5">Category</label>
       <select name="category"
-              class="w-full bg-navy-800 border border-navy-600 rounded-lg px-3 py-2 text-sm text-gray-200 focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400 transition-colors"
-              hx-get="/feed/"
-              hx-target="#feed-container"
-              hx-swap="innerHTML"
-              hx-include="#filter-form"
-              hx-indicator="#spinner"
-              hx-trigger="change">
+              id="category-select"
+              class="w-full bg-navy-800 border border-navy-600 rounded-lg px-3 py-2 text-sm text-gray-200
+                     focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400 transition-colors"
+              onchange="nexusSubmitFilters()">
         <option value="">All Categories</option>
         {% for cat in categories %}
           <option value="{{ cat }}" {% if filters.category == cat %}selected{% endif %}>{{ cat|title }}</option>
@@ -70,13 +59,9 @@
     <div>
       <label class="block text-xs font-medium text-gray-400 mb-1.5">Language</label>
       <select name="language"
-              class="w-full bg-navy-800 border border-navy-600 rounded-lg px-3 py-2 text-sm text-gray-200 focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400 transition-colors"
-              hx-get="/feed/"
-              hx-target="#feed-container"
-              hx-swap="innerHTML"
-              hx-include="#filter-form"
-              hx-indicator="#spinner"
-              hx-trigger="change">
+              class="w-full bg-navy-800 border border-navy-600 rounded-lg px-3 py-2 text-sm text-gray-200
+                     focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400 transition-colors"
+              onchange="nexusSubmitFilters()">
         <option value="en" {% if filters.language == 'en' or not filters.language %}selected{% endif %}>English</option>
         <option value="fr" {% if filters.language == 'fr' %}selected{% endif %}>French</option>
         <option value="sw" {% if filters.language == 'sw' %}selected{% endif %}>Swahili</option>
@@ -94,10 +79,12 @@
       <div class="space-y-2">
         <input type="date" name="from_date" value="{{ filters.from_date|default:'' }}"
                placeholder="From"
-               class="w-full bg-navy-800 border border-navy-600 rounded-lg px-3 py-2 text-sm text-gray-200 focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400 transition-colors" />
+               class="w-full bg-navy-800 border border-navy-600 rounded-lg px-3 py-2 text-sm text-gray-200
+                      focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400 transition-colors" />
         <input type="date" name="to_date" value="{{ filters.to_date|default:'' }}"
                placeholder="To"
-               class="w-full bg-navy-800 border border-navy-600 rounded-lg px-3 py-2 text-sm text-gray-200 focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400 transition-colors" />
+               class="w-full bg-navy-800 border border-navy-600 rounded-lg px-3 py-2 text-sm text-gray-200
+                      focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400 transition-colors" />
       </div>
     </div>
 
@@ -105,21 +92,17 @@
     <div>
       <label class="block text-xs font-medium text-gray-400 mb-1.5">Sort By</label>
       <select name="sort_by"
-              class="w-full bg-navy-800 border border-navy-600 rounded-lg px-3 py-2 text-sm text-gray-200 focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400 transition-colors"
-              hx-get="/feed/"
-              hx-target="#feed-container"
-              hx-swap="innerHTML"
-              hx-include="#filter-form"
-              hx-indicator="#spinner"
-              hx-trigger="change">
+              class="w-full bg-navy-800 border border-navy-600 rounded-lg px-3 py-2 text-sm text-gray-200
+                     focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400 transition-colors"
+              onchange="nexusSubmitFilters()">
         {% for val, label in sort_options %}
           <option value="{{ val }}" {% if filters.sort_by == val %}selected{% endif %}>{{ label }}</option>
         {% endfor %}
       </select>
     </div>
 
-    <!-- Apply button (for date range) -->
-    <button type="submit"
+    <!-- Apply button (for date range which has no onchange) -->
+    <button type="button" onclick="nexusSubmitFilters()"
             class="w-full py-2.5 text-sm bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-medium transition-colors">
       Apply Filters
     </button>
@@ -129,17 +112,19 @@
   <!-- Quick topic pills -->
   <div class="mt-5 pt-4 border-t border-navy-700">
     <p class="text-xs font-medium text-gray-400 mb-2">Quick Topics</p>
-    <div class="flex flex-wrap gap-1.5">
+    <div class="flex flex-wrap gap-1.5" id="topic-pills">
       {% for topic in quick_topics %}
-        <a href="/feed/?category={{ topic }}&country={{ filters.country|default:'ke' }}"
-           hx-get="/feed/?category={{ topic }}&country={{ filters.country|default:'ke' }}"
-           hx-target="#feed-container"
-           hx-swap="innerHTML"
-           hx-push-url="true"
-           class="text-xs px-2.5 py-1 rounded-full border transition-colors
-             {% if filters.category == topic %}bg-blue-600 border-blue-500 text-white{% else %}bg-navy-800 border-navy-600 text-gray-400 hover:border-blue-500 hover:text-blue-300{% endif %}">
+        <button type="button"
+                class="topic-pill text-xs px-2.5 py-1 rounded-full border transition-colors
+                  {% if filters.category == topic %}
+                    bg-blue-600 border-blue-500 text-white
+                  {% else %}
+                    bg-navy-800 border-navy-600 text-gray-400 hover:border-blue-500 hover:text-blue-300
+                  {% endif %}"
+                data-topic="{{ topic }}"
+                onclick="nexusSelectTopic('{{ topic }}')">
           {{ topic|title }}
-        </a>
+        </button>
       {% endfor %}
     </div>
   </div>

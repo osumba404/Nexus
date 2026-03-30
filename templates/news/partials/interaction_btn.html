@@ -1,0 +1,43 @@
+{% if interaction_type == 'like' %}
+<button
+  hx-post="/interact/"
+  hx-target="this"
+  hx-swap="outerHTML"
+  hx-include="closest article"
+  hx-vals='{"type":"like"}'
+  title="{{ active|yesno:'Unlike,Like' }}"
+  class="p-1 rounded transition-colors {% if active %}text-red-400 hover:text-red-300{% else %}text-gray-500 hover:text-red-400{% endif %}">
+  <input type="hidden" name="url"          value="{{ url }}" />
+  <input type="hidden" name="title"        value="{{ title }}" />
+  <input type="hidden" name="excerpt"      value="{{ excerpt|truncatechars:300 }}" />
+  <input type="hidden" name="image_url"    value="{{ image_url }}" />
+  <input type="hidden" name="source_name"  value="{{ source_name }}" />
+  <input type="hidden" name="published_at" value="{{ published_at }}" />
+  <input type="hidden" name="category"     value="{{ category }}" />
+  <svg class="w-4 h-4" fill="{% if active %}currentColor{% else %}none{% endif %}" stroke="currentColor" viewBox="0 0 24 24">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+          d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+  </svg>
+</button>
+{% else %}
+<button
+  hx-post="/interact/"
+  hx-target="this"
+  hx-swap="outerHTML"
+  hx-include="closest article"
+  hx-vals='{"type":"bookmark"}'
+  title="{{ active|yesno:'Remove bookmark,Bookmark' }}"
+  class="p-1 rounded transition-colors {% if active %}text-blue-400 hover:text-blue-300{% else %}text-gray-500 hover:text-blue-400{% endif %}">
+  <input type="hidden" name="url"          value="{{ url }}" />
+  <input type="hidden" name="title"        value="{{ title }}" />
+  <input type="hidden" name="excerpt"      value="{{ excerpt|truncatechars:300 }}" />
+  <input type="hidden" name="image_url"    value="{{ image_url }}" />
+  <input type="hidden" name="source_name"  value="{{ source_name }}" />
+  <input type="hidden" name="published_at" value="{{ published_at }}" />
+  <input type="hidden" name="category"     value="{{ category }}" />
+  <svg class="w-4 h-4" fill="{% if active %}currentColor{% else %}none{% endif %}" stroke="currentColor" viewBox="0 0 24 24">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+          d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"/>
+  </svg>
+</button>
+{% endif %}

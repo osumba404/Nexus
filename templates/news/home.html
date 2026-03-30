@@ -3,13 +3,6 @@
 
 {% block title %}{{ filters.q|default:"Latest News" }}{% endblock %}
 
-{% block extra_head %}
-  {% if auto_refresh %}
-  <!-- Auto-refresh every N seconds via HTMX polling -->
-  <meta name="auto-refresh" content="{{ auto_refresh }}" />
-  {% endif %}
-{% endblock %}
-
 {% block content %}
 <div class="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
   <div class="flex gap-6">
@@ -25,41 +18,32 @@
       <!-- Feed header -->
       <div class="flex items-center justify-between mb-5">
         <div>
-          <h1 class="text-xl font-bold text-white">
-            {% if is_my_feed %}
-              My Feed
-            {% elif filters.q %}
-              Results for "<span class="text-blue-400">{{ filters.q }}</span>"
-            {% elif filters.category %}
-              {{ filters.category|title }} News
-            {% elif filters.country %}
-              News from {{ filters.country|upper }}
-            {% else %}
-              Latest News
-            {% endif %}
+          <h1 class="text-xl font-bold text-white" id="feed-title">
+            {% if is_my_feed %}My Feed
+            {% elif filters.q %}Results for "<span class="text-blue-400">{{ filters.q }}</span>"
+            {% elif filters.category %}{{ filters.category|title }} News
+            {% elif filters.country %}News from {{ filters.country|upper }}
+            {% else %}Latest News{% endif %}
           </h1>
-          {% if total %}
-            <p class="text-xs text-gray-500 mt-0.5">{{ total }} articles found</p>
-          {% endif %}
+          {% if total %}<p class="text-xs text-gray-500 mt-0.5">{{ total }} articles found</p>{% endif %}
         </div>
 
         <div class="flex items-center gap-3">
-          <!-- Auto-refresh badge -->
-          <div id="refresh-badge"
-               class="hidden sm:flex items-center gap-1.5 text-xs text-gray-400 bg-navy-800 px-2.5 py-1 rounded-full border border-navy-600">
+          <!-- Live badge -->
+          <div class="hidden sm:flex items-center gap-1.5 text-xs text-gray-400 bg-navy-800 px-2.5 py-1
+                      rounded-full border border-navy-600">
             <span class="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse"></span>
             Live
           </div>
 
-          <!-- Manual refresh -->
-          <button
-            hx-get="/feed/?{% for k,v in filters.items %}{% if v %}{{ k }}={{ v }}&{% endif %}{% endfor %}"
-            hx-target="#feed-container"
-            hx-swap="innerHTML"
-            hx-indicator="#spinner"
-            class="flex items-center gap-1.5 text-xs text-blue-400 hover:text-blue-300 bg-navy-800 hover:bg-navy-700 px-3 py-1.5 rounded-lg border border-navy-600 transition-all">
+          <!-- Manual refresh — bypasses cache for fresh articles -->
+          <button id="refresh-btn"
+                  onclick="nexusForceRefresh()"
+                  class="flex items-center gap-1.5 text-xs text-blue-400 hover:text-blue-300 bg-navy-800
+                         hover:bg-navy-700 px-3 py-1.5 rounded-lg border border-navy-600 transition-all">
             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
             </svg>
             Refresh
           </button>
@@ -69,9 +53,11 @@
       <!-- Mobile filter toggle -->
       <div class="lg:hidden mb-4">
         <button onclick="document.getElementById('mobile-filters').classList.toggle('hidden')"
-                class="flex items-center gap-2 text-sm text-gray-300 bg-navy-800 border border-navy-600 px-4 py-2 rounded-lg w-full justify-center hover:bg-navy-700 transition-colors">
+                class="flex items-center gap-2 text-sm text-gray-300 bg-navy-800 border border-navy-600
+                       px-4 py-2 rounded-lg w-full justify-center hover:bg-navy-700 transition-colors">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/>
           </svg>
           Filters &amp; Options
         </button>
@@ -80,9 +66,13 @@
         </div>
       </div>
 
-      <!-- Feed container — HTMX target -->
+      <!-- ── Feed container ──────────────────────────────────────────── -->
+      {#  hx-get reads params from #filter-form at request time — no      #}
+      {#  stale hardcoded params. This means auto-refresh and any HTMX    #}
+      {#  trigger here always reflect the CURRENT filter selections.      #}
       <div id="feed-container"
-           hx-get="/feed/?{% for k,v in filters.items %}{% if v %}{{ k }}={{ v }}&{% endif %}{% endfor %}"
+           hx-get="/feed/"
+           hx-include="#filter-form"
            hx-trigger="every {{ auto_refresh }}s"
            hx-swap="innerHTML"
            hx-indicator="#spinner">
@@ -110,11 +100,10 @@
       {% if user.is_authenticated %}
       <div class="bg-navy-900 border border-navy-700 rounded-xl p-4">
         <h2 class="text-sm font-semibold text-white mb-3">Save Preferences</h2>
-        <form hx-post="/preferences/" hx-target="#pref-result" hx-swap="innerHTML"
-              class="space-y-3">
+        <form hx-post="/preferences/" hx-target="#pref-result" hx-swap="innerHTML" class="space-y-3">
           {% csrf_token %}
-          <input type="hidden" name="country" value="{{ filters.country|default:'ke' }}" />
-          <input type="hidden" name="language" value="{{ filters.language|default:'en' }}" />
+          <input type="hidden" name="country"    value="{{ filters.country|default:'ke' }}" />
+          <input type="hidden" name="language"   value="{{ filters.language|default:'en' }}" />
           <input type="hidden" name="categories" value="{{ filters.category|default:'' }}" />
           <button type="submit"
                   class="w-full py-2 text-sm bg-blue-600 hover:bg-blue-500 text-white rounded-lg transition-colors">
@@ -128,4 +117,76 @@
 
   </div>
 </div>
+{% endblock %}
+
+
+{% block extra_js %}
+<script>
+// ── Nexus filter helpers ──────────────────────────────────────────────────────
+
+/**
+ * Submit the current filter form via HTMX — updates #feed-container only.
+ * This is called by every filter select's onchange and the Apply button.
+ */
+function nexusSubmitFilters() {
+  const form = document.getElementById('filter-form');
+  if (!form) return;
+  const params = new URLSearchParams(new FormData(form));
+  // Remove blank entries so the URL stays clean
+  [...params.entries()].forEach(([k, v]) => { if (!v) params.delete(k); });
+  const qs = params.toString();
+  const url = '/feed/' + (qs ? '?' + qs : '');
+
+  htmx.ajax('GET', url, {
+    target:  '#feed-container',
+    swap:    'innerHTML',
+    source:  '#filter-form',
+  });
+  // Push clean URL to browser history
+  history.pushState({}, '', qs ? '/feed/?' + qs : '/');
+}
+
+/**
+ * Force-refresh: bypass cache so the user sees brand-new articles.
+ * Appends _force=1 to the current form params.
+ */
+function nexusForceRefresh() {
+  const form = document.getElementById('filter-form');
+  const params = new URLSearchParams(form ? new FormData(form) : {});
+  [...params.entries()].forEach(([k, v]) => { if (!v) params.delete(k); });
+  params.set('_force', '1');
+
+  htmx.ajax('GET', '/feed/?' + params.toString(), {
+    target: '#feed-container',
+    swap:   'innerHTML',
+  });
+}
+
+/**
+ * Quick-topic pill click:
+ *  1. Sets the category <select> in all visible filter forms to the chosen topic.
+ *  2. Updates pill highlight styles immediately.
+ *  3. Submits filters so #feed-container updates without a full page reload.
+ */
+function nexusSelectTopic(topic) {
+  // 1. Sync every category select on the page (desktop + mobile sidebar)
+  document.querySelectorAll('[name="category"]').forEach(function(sel) {
+    sel.value = topic;
+  });
+
+  // 2. Re-style all topic pills
+  document.querySelectorAll('.topic-pill').forEach(function(btn) {
+    const isActive = btn.dataset.topic === topic;
+    btn.classList.toggle('bg-blue-600',    isActive);
+    btn.classList.toggle('border-blue-500', isActive);
+    btn.classList.toggle('text-white',      isActive);
+    btn.classList.toggle('bg-navy-800',    !isActive);
+    btn.classList.toggle('border-navy-600', !isActive);
+    btn.classList.toggle('text-gray-400',   !isActive);
+  });
+
+  // 3. Submit with the updated form values
+  nexusSubmitFilters();
+}
+</script>
 {% endblock %}

@@ -308,6 +308,48 @@ def _make_cache_key(filters: dict) -> str:
     return 'news:v2:' + hashlib.md5(stable.encode()).hexdigest()
 
 
+def _make_user_cache_key(filters: dict, user_key: str) -> str:
+    """Per-user/session cache key so users get independent caches."""
+    stable = '|'.join(f"{k}={v}" for k, v in sorted(filters.items()) if v)
+    return f'news:v2:{user_key}:' + hashlib.md5(stable.encode()).hexdigest()
+
+
+def _sort_by_freshness(articles: list[dict], seen_urls: set) -> list[dict]:
+    """Put unseen articles first, then seen ones — both groups newest-first."""
+    unseen = [a for a in articles if a['url'] not in seen_urls]
+    seen   = [a for a in articles if a['url'] in seen_urls]
+    return unseen + seen
+
+
+def _detect_breaking(articles: list[dict]) -> tuple[list[dict], list[dict]]:
+    """
+    Split articles into (breaking, normal).
+    Breaking = published within last 2 hours OR 'breaking' in title.
+    """
+    from datetime import datetime, timezone, timedelta
+    cutoff = datetime.now(timezone.utc) - timedelta(hours=2)
+    breaking, normal = [], []
+    for a in articles:
+        pub = a.get('published_at', '')
+        is_recent = False
+        if pub:
+            for fmt in ('%Y-%m-%d %H:%M:%S', '%Y-%m-%dT%H:%M:%SZ', '%Y-%m-%dT%H:%M:%S%z'):
+                try:
+                    dt = datetime.strptime(pub[:19], fmt[:len(pub[:19])])
+                    if dt.tzinfo is None:
+                        dt = dt.replace(tzinfo=timezone.utc)
+                    is_recent = dt >= cutoff
+                    break
+                except Exception:
+                    continue
+        is_breaking_title = 'breaking' in a.get('title', '').lower()
+        if is_recent or is_breaking_title:
+            breaking.append(a)
+        else:
+            normal.append(a)
+    return breaking, normal
+
+
 # ── Individual fetchers ───────────────────────────────────────────────────────
 def _fetch_newsdata(filters: dict, api_key: str, max_pages: int = 5) -> list[dict]:
     """NewsData.io — follows nextPage tokens for up to max_pages pages."""
@@ -550,6 +592,8 @@ class NewsAggregatorService:
         page: int = 1,
         page_size: int = None,
         force_refresh: bool = False,
+        user_key: str = 'anon',
+        seen_urls: set = None,
     ) -> dict:
         if page_size is None:
             page_size = getattr(settings, 'NEWS_PAGE_SIZE', 12)
@@ -567,7 +611,7 @@ class NewsAggregatorService:
         if continent and not country:
             filters['region'] = CONTINENT_REGIONS.get(continent, continent)
 
-        cache_key = _make_cache_key({**filters, 'page': page})
+        cache_key = _make_user_cache_key({**filters, 'page': page}, user_key)
         ttl = getattr(settings, 'NEWS_CACHE_TTL', 180)
 
         if not force_refresh:
@@ -605,16 +649,23 @@ class NewsAggregatorService:
 
         # Merge, deduplicate, sort
         all_articles = _deduplicate(all_articles)
-        all_articles.sort(key=lambda a: a.get('published_at') or '', reverse=True)
 
-        # Paginate
-        total = len(all_articles)
+        # Sort: unseen first, then seen — each group newest-first
+        all_articles.sort(key=lambda a: a.get('published_at') or '', reverse=True)
+        if seen_urls:
+            all_articles = _sort_by_freshness(all_articles, seen_urls)
+
+        # Split breaking vs normal
+        breaking_articles, normal_articles = _detect_breaking(all_articles)
+
+        total = len(normal_articles)
         start = (page - 1) * page_size
-        page_articles = all_articles[start:start + page_size]
+        page_articles = normal_articles[start:start + page_size]
 
         has_keys = any(keys.values())
         result = {
             'articles': page_articles,
+            'breaking': breaking_articles[:10],
             'total': total,
             'page': page,
             'has_more': (start + page_size) < total,
