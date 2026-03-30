@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+
+{% block title %}Login{% endblock %}
+
+{% block content %}
+<div class="min-h-screen flex items-center justify-center px-4 py-12">
+  <div class="w-full max-w-md">
+
+    <!-- Card -->
+    <div class="bg-navy-900 border border-navy-700 rounded-2xl shadow-2xl p-8">
+
+      <!-- Header -->
+      <div class="text-center mb-8">
+        <div class="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center mx-auto mb-4">
+          <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="10" stroke-width="2"/>
+            <line x1="2" y1="12" x2="22" y2="12" stroke-width="2"/>
+            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" stroke-width="2"/>
+          </svg>
+        </div>
+        <h1 class="text-2xl font-bold text-white">Welcome back</h1>
+        <p class="text-gray-400 text-sm mt-1">Sign in to your Nexus account</p>
+      </div>
+
+      <!-- Form -->
+      <form method="post" class="space-y-5">
+        {% csrf_token %}
+
+        {% if form.errors %}
+        <div class="bg-red-900/30 border border-red-600/40 rounded-lg px-4 py-3 text-sm text-red-300">
+          Invalid username or password. Please try again.
+        </div>
+        {% endif %}
+
+        <div>
+          <label for="id_username" class="block text-xs font-medium text-gray-400 mb-1.5">Username</label>
+          <input type="text" name="username" id="id_username" autocomplete="username" required
+                 class="w-full bg-navy-800 border border-navy-600 rounded-lg px-4 py-2.5 text-sm text-gray-100 placeholder-gray-500 focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400 transition-colors"
+                 placeholder="your username" />
+        </div>
+
+        <div>
+          <label for="id_password" class="block text-xs font-medium text-gray-400 mb-1.5">Password</label>
+          <input type="password" name="password" id="id_password" autocomplete="current-password" required
+                 class="w-full bg-navy-800 border border-navy-600 rounded-lg px-4 py-2.5 text-sm text-gray-100 placeholder-gray-500 focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400 transition-colors"
+                 placeholder="••••••••" />
+        </div>
+
+        <input type="hidden" name="next" value="{{ next }}" />
+
+        <button type="submit"
+                class="w-full py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-medium rounded-lg text-sm transition-colors">
+          Sign In
+        </button>
+      </form>
+
+      <!-- Footer -->
+      <div class="mt-6 text-center text-sm text-gray-500">
+        Don't have an account?
+        <a href="/accounts/signup/" class="text-blue-400 hover:text-blue-300 transition-colors ml-1">Sign up free</a>
+      </div>
+    </div>
+
+    <p class="text-center text-xs text-gray-600 mt-6">
+      <a href="/" class="hover:text-gray-400 transition-colors">← Back to Epicenter Nexus</a>
+    </p>
+  </div>
+</div>
+{% endblock %}

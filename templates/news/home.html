@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ filters.q|default:"Latest News" }}{% endblock %}
+
+{% block extra_head %}
+  {% if auto_refresh %}
+  <!-- Auto-refresh every N seconds via HTMX polling -->
+  <meta name="auto-refresh" content="{{ auto_refresh }}" />
+  {% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+  <div class="flex gap-6">
+
+    <!-- ── Sidebar Filters ────────────────────────────────────────────── -->
+    <aside class="hidden lg:flex flex-col w-72 flex-shrink-0 gap-4">
+      {% include "news/partials/sidebar_filters.html" %}
+    </aside>
+
+    <!-- ── Main Feed ──────────────────────────────────────────────────── -->
+    <div class="flex-1 min-w-0">
+
+      <!-- Feed header -->
+      <div class="flex items-center justify-between mb-5">
+        <div>
+          <h1 class="text-xl font-bold text-white">
+            {% if is_my_feed %}
+              My Feed
+            {% elif filters.q %}
+              Results for "<span class="text-blue-400">{{ filters.q }}</span>"
+            {% elif filters.category %}
+              {{ filters.category|title }} News
+            {% elif filters.country %}
+              News from {{ filters.country|upper }}
+            {% else %}
+              Latest News
+            {% endif %}
+          </h1>
+          {% if total %}
+            <p class="text-xs text-gray-500 mt-0.5">{{ total }} articles found</p>
+          {% endif %}
+        </div>
+
+        <div class="flex items-center gap-3">
+          <!-- Auto-refresh badge -->
+          <div id="refresh-badge"
+               class="hidden sm:flex items-center gap-1.5 text-xs text-gray-400 bg-navy-800 px-2.5 py-1 rounded-full border border-navy-600">
+            <span class="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse"></span>
+            Live
+          </div>
+
+          <!-- Manual refresh -->
+          <button
+            hx-get="/feed/?{% for k,v in filters.items %}{% if v %}{{ k }}={{ v }}&{% endif %}{% endfor %}"
+            hx-target="#feed-container"
+            hx-swap="innerHTML"
+            hx-indicator="#spinner"
+            class="flex items-center gap-1.5 text-xs text-blue-400 hover:text-blue-300 bg-navy-800 hover:bg-navy-700 px-3 py-1.5 rounded-lg border border-navy-600 transition-all">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+            </svg>
+            Refresh
+          </button>
+        </div>
+      </div>
+
+      <!-- Mobile filter toggle -->
+      <div class="lg:hidden mb-4">
+        <button onclick="document.getElementById('mobile-filters').classList.toggle('hidden')"
+                class="flex items-center gap-2 text-sm text-gray-300 bg-navy-800 border border-navy-600 px-4 py-2 rounded-lg w-full justify-center hover:bg-navy-700 transition-colors">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/>
+          </svg>
+          Filters &amp; Options
+        </button>
+        <div id="mobile-filters" class="hidden mt-3">
+          {% include "news/partials/sidebar_filters.html" %}
+        </div>
+      </div>
+
+      <!-- Feed container — HTMX target -->
+      <div id="feed-container"
+           hx-get="/feed/?{% for k,v in filters.items %}{% if v %}{{ k }}={{ v }}&{% endif %}{% endfor %}"
+           hx-trigger="every {{ auto_refresh }}s"
+           hx-swap="innerHTML"
+           hx-indicator="#spinner">
+        {% include "news/partials/feed_container.html" %}
+      </div>
+
+    </div>
+
+    <!-- ── Trending Sidebar ────────────────────────────────────────────── -->
+    <aside class="hidden xl:flex flex-col w-72 flex-shrink-0 gap-4">
+      <div class="bg-navy-900 border border-navy-700 rounded-xl p-4 sticky top-20">
+        <h2 class="text-sm font-semibold text-white mb-3 flex items-center gap-2">
+          <span class="w-2 h-2 bg-red-400 rounded-full animate-pulse"></span>
+          Trending Now
+        </h2>
+        <div id="trending-container"
+             hx-get="/trending/?country={{ filters.country|default:'ke' }}"
+             hx-trigger="load, every {{ auto_refresh }}s"
+             hx-swap="innerHTML">
+          {% include "news/partials/trending.html" %}
+        </div>
+      </div>
+
+      <!-- Save Preferences (logged-in) -->
+      {% if user.is_authenticated %}
+      <div class="bg-navy-900 border border-navy-700 rounded-xl p-4">
+        <h2 class="text-sm font-semibold text-white mb-3">Save Preferences</h2>
+        <form hx-post="/preferences/" hx-target="#pref-result" hx-swap="innerHTML"
+              class="space-y-3">
+          {% csrf_token %}
+          <input type="hidden" name="country" value="{{ filters.country|default:'ke' }}" />
+          <input type="hidden" name="language" value="{{ filters.language|default:'en' }}" />
+          <input type="hidden" name="categories" value="{{ filters.category|default:'' }}" />
+          <button type="submit"
+                  class="w-full py-2 text-sm bg-blue-600 hover:bg-blue-500 text-white rounded-lg transition-colors">
+            Save current filters
+          </button>
+          <div id="pref-result"></div>
+        </form>
+      </div>
+      {% endif %}
+    </aside>
+
+  </div>
+</div>
+{% endblock %}

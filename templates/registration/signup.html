@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+
+{% block title %}Sign Up{% endblock %}
+
+{% block content %}
+<div class="min-h-screen flex items-center justify-center px-4 py-12">
+  <div class="w-full max-w-md">
+
+    <div class="bg-navy-900 border border-navy-700 rounded-2xl shadow-2xl p-8">
+
+      <div class="text-center mb-8">
+        <div class="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center mx-auto mb-4">
+          <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/>
+          </svg>
+        </div>
+        <h1 class="text-2xl font-bold text-white">Create your account</h1>
+        <p class="text-gray-400 text-sm mt-1">Join Epicenter Nexus for personalized news</p>
+      </div>
+
+      <form method="post" class="space-y-5">
+        {% csrf_token %}
+
+        {% if form.errors %}
+        <div class="bg-red-900/30 border border-red-600/40 rounded-lg px-4 py-3 text-sm text-red-300">
+          {% for field, errors in form.errors.items %}
+            {% for error in errors %}<p>{{ error }}</p>{% endfor %}
+          {% endfor %}
+        </div>
+        {% endif %}
+
+        <div>
+          <label class="block text-xs font-medium text-gray-400 mb-1.5">Username</label>
+          <input type="text" name="username" required autocomplete="username"
+                 class="w-full bg-navy-800 border border-navy-600 rounded-lg px-4 py-2.5 text-sm text-gray-100 placeholder-gray-500 focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400 transition-colors"
+                 placeholder="choose a username" />
+        </div>
+
+        <div>
+          <label class="block text-xs font-medium text-gray-400 mb-1.5">Email (optional)</label>
+          <input type="email" name="email" autocomplete="email"
+                 class="w-full bg-navy-800 border border-navy-600 rounded-lg px-4 py-2.5 text-sm text-gray-100 placeholder-gray-500 focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400 transition-colors"
+                 placeholder="you@example.com" />
+        </div>
+
+        <div>
+          <label class="block text-xs font-medium text-gray-400 mb-1.5">Password</label>
+          <input type="password" name="password1" required autocomplete="new-password"
+                 class="w-full bg-navy-800 border border-navy-600 rounded-lg px-4 py-2.5 text-sm text-gray-100 placeholder-gray-500 focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400 transition-colors"
+                 placeholder="••••••••" />
+        </div>
+
+        <div>
+          <label class="block text-xs font-medium text-gray-400 mb-1.5">Confirm Password</label>
+          <input type="password" name="password2" required autocomplete="new-password"
+                 class="w-full bg-navy-800 border border-navy-600 rounded-lg px-4 py-2.5 text-sm text-gray-100 placeholder-gray-500 focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400 transition-colors"
+                 placeholder="••••••••" />
+        </div>
+
+        <button type="submit"
+                class="w-full py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-medium rounded-lg text-sm transition-colors">
+          Create Account
+        </button>
+      </form>
+
+      <div class="mt-6 text-center text-sm text-gray-500">
+        Already have an account?
+        <a href="/accounts/login/" class="text-blue-400 hover:text-blue-300 transition-colors ml-1">Sign in</a>
+      </div>
+    </div>
+
+    <p class="text-center text-xs text-gray-600 mt-6">
+      <a href="/" class="hover:text-gray-400 transition-colors">← Back to Epicenter Nexus</a>
+    </p>
+  </div>
+</div>
+{% endblock %}

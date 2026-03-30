@@ -1,0 +1,20 @@
+<!-- Article list partial — appended on "load more" (page > 1) -->
+{% for article in articles %}
+  {% include "news/partials/article_card.html" %}
+{% empty %}
+  <!-- empty state handled by feed_container -->
+{% endfor %}
+
+{% if has_more %}
+<div class="col-span-full flex justify-center pt-2"
+     id="load-more-{{ current_page }}">
+  <button
+    hx-get="/feed/?{% for k,v in filters.items %}{% if v %}{{ k }}={{ v }}&{% endif %}{% endfor %}page={{ current_page|add:1 }}"
+    hx-target="#load-more-{{ current_page }}"
+    hx-swap="outerHTML"
+    hx-indicator="#spinner"
+    class="px-6 py-2.5 text-sm bg-navy-800 hover:bg-navy-700 border border-navy-600 hover:border-blue-500 text-gray-300 hover:text-white rounded-lg transition-all">
+    Load more articles
+  </button>
+</div>
+{% endif %}
