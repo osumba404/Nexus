@@ -1,0 +1,179 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block title %}Epicenter Nexus{% endblock %} | Real-Time News</title>
+  <meta name="description" content="{% block meta_description %}Epicenter Nexus — Your real-time news hub for Kenya, Africa and the world.{% endblock %}" />
+
+  <!-- Tailwind CSS Play CDN (development) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            navy: {
+              50:  '#e8edf3',
+              100: '#c6d1e0',
+              200: '#a0b3cc',
+              300: '#7a94b8',
+              400: '#5f7fa9',
+              500: '#446a9a',
+              600: '#2c5282',
+              700: '#1e3a5f',
+              800: '#0f2746',
+              900: '#0A2540',
+              950: '#001F3F',
+            },
+          },
+          fontFamily: {
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+          },
+        }
+      }
+    }
+  </script>
+
+  <!-- HTMX -->
+  <script src="https://unpkg.com/htmx.org@2.0.4" defer></script>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="{% static 'css/nexus.css' %}" />
+
+  {% block extra_head %}{% endblock %}
+</head>
+
+<body class="h-full bg-navy-950 text-gray-100 font-sans antialiased">
+
+  <!-- ── Navbar ──────────────────────────────────────────────────────────── -->
+  <nav class="fixed top-0 left-0 right-0 z-50 bg-navy-900 border-b border-navy-700 shadow-lg">
+    <div class="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-16">
+
+        <!-- Logo + Brand -->
+        <div class="flex items-center gap-3 flex-shrink-0">
+          <a href="/" class="flex items-center gap-2 group">
+            {% if site_settings and site_settings.logo %}
+              <img src="{{ site_settings.logo.url }}" alt="Logo" class="h-9 w-auto" />
+            {% else %}
+              <div class="w-9 h-9 bg-blue-500 rounded-lg flex items-center justify-center">
+                <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <circle cx="12" cy="12" r="10" stroke-width="2"/>
+                  <line x1="2" y1="12" x2="22" y2="12" stroke-width="2"/>
+                  <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" stroke-width="2"/>
+                </svg>
+              </div>
+            {% endif %}
+            <span class="text-xl font-bold text-white group-hover:text-blue-300 transition-colors">
+              Epicenter <span class="text-blue-400">Nexus</span>
+            </span>
+          </a>
+        </div>
+
+        <!-- Search bar (center) -->
+        <div class="flex-1 max-w-xl mx-6 hidden md:block">
+          <form method="GET" action="/"
+                hx-get="/feed/"
+                hx-target="#feed-container"
+                hx-swap="innerHTML"
+                hx-push-url="true"
+                hx-indicator="#spinner">
+            <div class="relative">
+              <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+              </svg>
+              <input
+                type="text"
+                name="q"
+                value="{{ filters.q|default:'' }}"
+                placeholder="Search news, topics, people..."
+                class="w-full pl-9 pr-4 py-2 bg-navy-800 border border-navy-600 rounded-lg text-sm text-gray-100 placeholder-gray-400 focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400 transition-colors"
+                hx-get="/feed/"
+                hx-target="#feed-container"
+                hx-swap="innerHTML"
+                hx-trigger="keyup changed delay:600ms"
+                hx-indicator="#spinner"
+              />
+            </div>
+          </form>
+        </div>
+
+        <!-- Right actions -->
+        <div class="flex items-center gap-3">
+          <!-- Spinner -->
+          <span id="spinner" class="htmx-indicator">
+            <svg class="animate-spin h-5 w-5 text-blue-400" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+            </svg>
+          </span>
+
+          {% if user.is_authenticated %}
+            <a href="/my-feed/" class="hidden sm:flex items-center gap-1 text-sm text-gray-300 hover:text-white transition-colors px-3 py-1.5 rounded-lg hover:bg-navy-700">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+              </svg>
+              My Feed
+            </a>
+            <a href="/accounts/logout/" class="text-sm text-gray-400 hover:text-white transition-colors">Logout</a>
+          {% else %}
+            <a href="/accounts/login/" class="text-sm text-gray-300 hover:text-white transition-colors px-3 py-1.5 rounded-lg hover:bg-navy-700">Login</a>
+            <a href="/accounts/signup/" class="text-sm bg-blue-600 hover:bg-blue-500 text-white px-3 py-1.5 rounded-lg transition-colors">Sign Up</a>
+          {% endif %}
+        </div>
+
+      </div>
+    </div>
+  </nav>
+
+  <!-- ── Main content ────────────────────────────────────────────────────── -->
+  <main class="pt-16 min-h-screen">
+    <!-- Django messages -->
+    {% if messages %}
+      <div class="fixed top-20 right-4 z-50 space-y-2">
+        {% for message in messages %}
+          <div class="px-4 py-3 rounded-lg text-sm shadow-lg
+            {% if message.tags == 'success' %}bg-green-600{% elif message.tags == 'error' %}bg-red-600{% else %}bg-blue-600{% endif %}
+            text-white flex items-center gap-2"
+            x-data="{ show: true }" x-show="show" x-init="setTimeout(() => show = false, 4000)">
+            {{ message }}
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    {% block content %}{% endblock %}
+  </main>
+
+  <!-- ── Footer ──────────────────────────────────────────────────────────── -->
+  <footer class="bg-navy-900 border-t border-navy-700 mt-12">
+    <div class="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div class="flex items-center gap-2">
+          <div class="w-6 h-6 bg-blue-500 rounded flex items-center justify-center">
+            <svg class="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <circle cx="12" cy="12" r="10" stroke-width="2.5"/>
+              <line x1="2" y1="12" x2="22" y2="12" stroke-width="2"/>
+            </svg>
+          </div>
+          <span class="font-semibold text-white">Epicenter Nexus</span>
+        </div>
+        <p class="text-xs text-gray-500 text-center">
+          {% if site_settings %}{{ site_settings.footer_text }}{% else %}© 2026 Epicenter Nexus. Powered by 404Evans™{% endif %}
+        </p>
+        <p class="text-xs text-gray-600">News sourced live from NewsData.io &amp; NewsAPI.org</p>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Custom JS -->
+  <script src="{% static 'js/main.js' %}"></script>
+  {% block extra_js %}{% endblock %}
+</body>
+</html>
