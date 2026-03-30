@@ -1,78 +1,124 @@
 {% extends "base.html" %}
-{% block title %}My Dashboard{% endblock %}
+{% block title %}My Saved Articles{% endblock %}
 
 {% block content %}
-<div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+<div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 
+  <!-- Header -->
   <div class="flex items-center justify-between mb-6">
-    <h1 class="text-2xl font-bold text-white">My Dashboard</h1>
-    <a href="/" class="text-sm text-blue-400 hover:text-blue-300 transition-colors">← Back to Feed</a>
+    <div>
+      <h1 class="text-2xl font-bold text-white">My Saved Articles</h1>
+      <p class="text-sm text-gray-500 mt-0.5">Articles you've liked or bookmarked</p>
+    </div>
+    <a href="/" class="flex items-center gap-1.5 text-sm text-blue-400 hover:text-blue-300 transition-colors">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+      </svg>
+      Back to Feed
+    </a>
   </div>
 
   <!-- Tabs -->
   <div class="flex gap-1 bg-navy-900 border border-navy-700 rounded-xl p-1 mb-6 w-fit">
     <a href="/dashboard/?tab=bookmarks"
-       class="px-4 py-2 rounded-lg text-sm font-medium transition-colors
-              {% if tab == 'bookmarks' %}bg-blue-600 text-white{% else %}text-gray-400 hover:text-white{% endif %}">
+       class="flex items-center gap-2 px-5 py-2 rounded-lg text-sm font-medium transition-colors
+              {% if tab == 'bookmarks' %}bg-blue-600 text-white shadow{% else %}text-gray-400 hover:text-white hover:bg-navy-800{% endif %}">
+      <svg class="w-4 h-4" fill="{% if tab == 'bookmarks' %}currentColor{% else %}none{% endif %}" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"/>
+      </svg>
       Bookmarks
-      {% if bookmark_count %}<span class="ml-1.5 px-1.5 py-0.5 text-xs rounded-full
-        {% if tab == 'bookmarks' %}bg-blue-500{% else %}bg-navy-700 text-gray-400{% endif %}">{{ bookmark_count }}</span>{% endif %}
+      {% if bookmark_count %}
+      <span class="px-1.5 py-0.5 text-xs rounded-full
+        {% if tab == 'bookmarks' %}bg-blue-500 text-white{% else %}bg-navy-700 text-gray-400{% endif %}">
+        {{ bookmark_count }}
+      </span>
+      {% endif %}
     </a>
     <a href="/dashboard/?tab=likes"
-       class="px-4 py-2 rounded-lg text-sm font-medium transition-colors
-              {% if tab == 'likes' %}bg-red-600 text-white{% else %}text-gray-400 hover:text-white{% endif %}">
+       class="flex items-center gap-2 px-5 py-2 rounded-lg text-sm font-medium transition-colors
+              {% if tab == 'likes' %}bg-red-600 text-white shadow{% else %}text-gray-400 hover:text-white hover:bg-navy-800{% endif %}">
+      <svg class="w-4 h-4" fill="{% if tab == 'likes' %}currentColor{% else %}none{% endif %}" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+      </svg>
       Liked
-      {% if like_count %}<span class="ml-1.5 px-1.5 py-0.5 text-xs rounded-full
-        {% if tab == 'likes' %}bg-red-500{% else %}bg-navy-700 text-gray-400{% endif %}">{{ like_count }}</span>{% endif %}
+      {% if like_count %}
+      <span class="px-1.5 py-0.5 text-xs rounded-full
+        {% if tab == 'likes' %}bg-red-500 text-white{% else %}bg-navy-700 text-gray-400{% endif %}">
+        {{ like_count }}
+      </span>
+      {% endif %}
     </a>
   </div>
 
   <!-- Article grid -->
   {% if saved_articles %}
-  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4" id="saved-grid">
     {% for item in saved_articles %}
-    <article class="bg-navy-900 border border-navy-700 rounded-xl overflow-hidden hover:border-blue-500/40 transition-all group flex flex-col">
+    <article class="bg-navy-900 border border-navy-700 rounded-xl overflow-hidden
+                    hover:border-blue-500/40 transition-all group flex flex-col"
+             id="saved-{{ item.pk }}">
+
       {% if item.image_url %}
-      <a href="{{ item.url }}" target="_blank" rel="noopener noreferrer" class="block overflow-hidden h-40">
+      <a href="{{ item.url }}" target="_blank" rel="noopener noreferrer"
+         class="block overflow-hidden h-40 flex-shrink-0">
         <img src="{{ item.image_url }}" alt="{{ item.title }}" loading="lazy"
              class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
              onerror="this.parentElement.style.display='none'" />
       </a>
       {% endif %}
+
       <div class="p-4 flex flex-col gap-2 flex-1">
+        <!-- Category + date -->
         <div class="flex items-center justify-between text-xs text-gray-500">
-          <span class="bg-navy-800 border border-navy-600 px-2 py-0.5 rounded-full uppercase tracking-wide font-medium text-blue-300">
+          <span class="bg-navy-800 border border-navy-600 px-2 py-0.5 rounded-full uppercase
+                       tracking-wide font-medium text-blue-300">
             {{ item.category|default:"News" }}
           </span>
           <time>{{ item.published_at|slice:":10" }}</time>
         </div>
-        <h2 class="text-sm font-semibold text-white leading-snug line-clamp-3 group-hover:text-blue-300 transition-colors">
+
+        <!-- Title -->
+        <h2 class="text-sm font-semibold text-white leading-snug line-clamp-3
+                   group-hover:text-blue-300 transition-colors">
           <a href="{{ item.url }}" target="_blank" rel="noopener noreferrer">{{ item.title }}</a>
         </h2>
+
         {% if item.excerpt %}
         <p class="text-xs text-gray-400 line-clamp-2">{{ item.excerpt|truncatechars:140 }}</p>
         {% endif %}
+
+        <!-- Footer row -->
         <div class="flex items-center justify-between mt-auto pt-2 border-t border-navy-700">
-          <span class="text-xs text-gray-500 truncate max-w-[60%]">{{ item.source_name }}</span>
+          <div class="flex flex-col gap-0.5">
+            <span class="text-xs text-gray-500 truncate max-w-[140px]">{{ item.source_name }}</span>
+            <span class="text-xs text-gray-600">Saved {{ item.saved_at|date:"M d, Y" }}</span>
+          </div>
+
           <div class="flex items-center gap-2">
-            <span class="text-xs text-gray-600">Saved {{ item.saved_at|date:"M d" }}</span>
-            <form method="post" action="/interact/" class="inline">
-              {% csrf_token %}
-              <input type="hidden" name="url"              value="{{ item.url }}" />
-              <input type="hidden" name="type"             value="{{ item.interaction_type }}" />
-              <input type="hidden" name="title"            value="{{ item.title }}" />
-              <input type="hidden" name="image_url"        value="{{ item.image_url }}" />
-              <input type="hidden" name="source_name"      value="{{ item.source_name }}" />
-              <input type="hidden" name="published_at"     value="{{ item.published_at }}" />
-              <input type="hidden" name="category"         value="{{ item.category }}" />
-              <button type="submit"
-                      class="text-xs text-gray-500 hover:text-red-400 transition-colors"
-                      title="Remove">
-                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                </svg>
-              </button>
-            </form>
+            <!-- Open article -->
+            <a href="{{ item.url }}" target="_blank" rel="noopener noreferrer"
+               class="text-xs text-blue-400 hover:text-blue-300 transition-colors flex items-center gap-1">
+              Read
+              <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+              </svg>
+            </a>
+
+            <!-- Remove (HTMX — removes card instantly) -->
+            <button
+              hx-post="/interact/"
+              hx-target="#saved-{{ item.pk }}"
+              hx-swap="outerHTML swap:0.3s"
+              hx-vals='{"type":"{{ item.interaction_type }}","url":"{{ item.url|escapejs }}","title":"{{ item.title|escapejs }}","image_url":"{{ item.image_url|escapejs }}","source_name":"{{ item.source_name|escapejs }}","published_at":"{{ item.published_at|escapejs }}","category":"{{ item.category|escapejs }}"}'
+              title="Remove"
+              class="p-1.5 rounded-lg text-gray-500 hover:text-red-400 hover:bg-red-900/20 transition-colors">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+              </svg>
+            </button>
           </div>
         </div>
       </div>
@@ -81,23 +127,34 @@
   </div>
 
   {% else %}
-  <div class="flex flex-col items-center justify-center py-20 text-center">
-    <div class="w-16 h-16 bg-navy-800 rounded-full flex items-center justify-center mb-4">
+  <!-- Empty state -->
+  <div class="flex flex-col items-center justify-center py-24 text-center">
+    <div class="w-20 h-20 bg-navy-800 rounded-full flex items-center justify-center mb-5 border border-navy-700">
       {% if tab == 'bookmarks' %}
-      <svg class="w-8 h-8 text-navy-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"/>
+      <svg class="w-9 h-9 text-navy-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+              d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"/>
       </svg>
       {% else %}
-      <svg class="w-8 h-8 text-navy-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+      <svg class="w-9 h-9 text-navy-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+              d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
       </svg>
       {% endif %}
     </div>
-    <p class="text-gray-400 font-medium">No {{ tab }} yet</p>
-    <p class="text-gray-600 text-sm mt-1">
-      {% if tab == 'bookmarks' %}Bookmark articles to read them later{% else %}Like articles you enjoy{% endif %}
+    <p class="text-gray-300 font-semibold text-lg">No {{ tab }} yet</p>
+    <p class="text-gray-500 text-sm mt-1.5 max-w-xs">
+      {% if tab == 'bookmarks' %}
+        Tap the <strong class="text-gray-400">bookmark icon</strong> on any article to save it here.
+      {% else %}
+        Tap the <strong class="text-gray-400">heart icon</strong> on any article you enjoy.
+      {% endif %}
     </p>
-    <a href="/" class="mt-4 text-sm text-blue-400 hover:text-blue-300 transition-colors">Browse the feed →</a>
+    <a href="/"
+       class="mt-6 inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-500
+              text-white text-sm font-medium rounded-lg transition-colors">
+      Browse the feed →
+    </a>
   </div>
   {% endif %}
 
