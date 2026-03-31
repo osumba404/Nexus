@@ -1,41 +1,48 @@
 {% if content.failed %}
 {# ── Could not extract content ──────────────────────────────────────────── #}
-<div class="flex flex-col items-center justify-center py-10 text-center gap-3">
-  <svg class="w-12 h-12 opacity-25 nex-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
-          d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-  </svg>
-  <p class="text-sm nex-text-muted max-w-xs leading-relaxed">
-    The full article text could not be extracted — this page may be behind a
-    paywall or require JavaScript to render.
-  </p>
+<div class="flex flex-col items-center justify-center py-12 text-center gap-4">
+  <div class="w-16 h-16 rounded-full flex items-center justify-center" style="background:var(--nex-bg-secondary)">
+    <svg class="w-8 h-8 opacity-40 nex-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+            d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+    </svg>
+  </div>
+  <div>
+    <p class="font-semibold nex-text mb-1">Full text unavailable</p>
+    <p class="text-sm nex-text-muted max-w-xs leading-relaxed">
+      This article may be behind a paywall, require JavaScript, or the
+      publisher blocks automated access.
+    </p>
+  </div>
   <a href="{{ source_url }}" target="_blank" rel="noopener noreferrer"
-     class="mt-1 inline-flex items-center gap-1.5 text-sm font-medium text-blue-400 hover:text-blue-300 transition-colors">
-    Read directly at source
+     class="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-white transition-colors"
+     style="background:#2563eb">
     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
             d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
     </svg>
+    Read full article at source
   </a>
 </div>
 
 {% else %}
-{# ── Full article content ────────────────────────────────────────────────── #}
+{# ── Full article content ─────────────────────────────────────────────────── #}
 
+{# Meta bar: author + date (only when available) #}
 {% if content.author or content.date %}
-<div class="flex flex-wrap items-center gap-3 mb-5 pb-4" style="border-bottom:1px solid var(--nex-border)">
+<div class="flex flex-wrap items-center gap-x-5 gap-y-2 mb-6 pb-5" style="border-bottom:1px solid var(--nex-border)">
   {% if content.author %}
-  <span class="flex items-center gap-1.5 text-xs nex-text-muted">
-    <svg class="w-3.5 h-3.5 text-blue-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+  <span class="flex items-center gap-2 text-sm nex-text-muted">
+    <svg class="w-4 h-4 text-blue-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
             d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
     </svg>
-    <span class="font-medium nex-text-secondary">{{ content.author }}</span>
+    <span class="font-medium nex-text">{{ content.author }}</span>
   </span>
   {% endif %}
   {% if content.date %}
-  <span class="flex items-center gap-1.5 text-xs nex-text-muted">
-    <svg class="w-3.5 h-3.5 text-blue-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+  <span class="flex items-center gap-2 text-sm nex-text-muted">
+    <svg class="w-4 h-4 text-blue-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
             d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
     </svg>
@@ -45,7 +52,8 @@
 </div>
 {% endif %}
 
-<div class="article-body nex-text-secondary text-base leading-relaxed">
+{# The actual article HTML — all tags render as-is via |safe #}
+<div class="article-body">
   {{ content.html|safe }}
 </div>
 

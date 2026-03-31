@@ -45,6 +45,95 @@ _SCRAPE_HEADERS = {
 _CONTENT_CACHE_TTL = 6 * 3600  # 6 hours
 
 
+def _postprocess_article_html(html_str: str, base_url: str) -> str:
+    """
+    Post-process trafilatura's HTML output:
+      • Make relative image src attributes absolute using base_url
+      • Resolve lazy-load data-src / data-lazy-src / data-original → src
+      • Remove tracking pixels (width/height ≤ 2)
+      • Add loading="lazy" and decoding="async" to every <img>
+      • Wrap <table> elements in a scrollable <div> so they don't overflow
+    Uses lxml (installed as a trafilatura dependency).
+    """
+    if not html_str:
+        return html_str
+    try:
+        from lxml import html as lhtml
+        from urllib.parse import urljoin
+
+        # lxml needs a single root; wrap fragments in a throwaway <div>
+        root = lhtml.fromstring(f'<div>{html_str}</div>')
+
+        # ── Images ────────────────────────────────────────────────────────
+        for img in root.iter('img'):
+            attrib = img.attrib
+            # Prefer real src; fall back to lazy-load data attributes
+            src = (
+                attrib.get('src') or
+                attrib.get('data-src') or
+                attrib.get('data-lazy-src') or
+                attrib.get('data-original') or
+                attrib.get('data-url') or
+                ''
+            ).strip()
+
+            # Drop tracking pixels
+            try:
+                w = int(attrib.get('width', '999'))
+                h = int(attrib.get('height', '999'))
+                if w <= 2 or h <= 2:
+                    parent = img.getparent()
+                    if parent is not None:
+                        parent.remove(img)
+                    continue
+            except ValueError:
+                pass
+
+            if not src:
+                parent = img.getparent()
+                if parent is not None:
+                    parent.remove(img)
+                continue
+
+            # Make relative URLs absolute
+            if not src.startswith(('http://', 'https://', '//')):
+                src = urljoin(base_url, src)
+            elif src.startswith('//'):
+                src = 'https:' + src
+
+            img.set('src', src)
+            img.set('loading', 'lazy')
+            img.set('decoding', 'async')
+
+            # Remove all data-* lazy-load attrs now that src is resolved
+            for attr in list(attrib):
+                if attr.startswith('data-'):
+                    del attrib[attr]
+
+        # ── Tables → scrollable wrapper ───────────────────────────────────
+        for table in list(root.iter('table')):
+            parent = table.getparent()
+            if parent is None:
+                continue
+            idx = list(parent).index(table)
+            wrapper = lhtml.Element('div')
+            wrapper.set('class', 'article-table-wrap')
+            parent.remove(table)
+            wrapper.append(table)
+            parent.insert(idx, wrapper)
+
+        # Serialise back, stripping our wrapper <div> tags
+        inner = (root.text or '') + ''.join(
+            lhtml.tostring(child, encoding='unicode', method='html')
+            for child in root
+        )
+        return inner
+
+    except Exception as exc:
+        logger.debug('_postprocess_article_html error: %s', exc)
+        return html_str
+
+
 def fetch_article_content(url: str) -> dict:
     """
     Fetch and extract the full article body from *url* using trafilatura.
@@ -60,7 +149,7 @@ def fetch_article_content(url: str) -> dict:
     Results are cached in Django's cache for _CONTENT_CACHE_TTL seconds so
     repeated visits to the same article page don't hammer the origin server.
     """
-    cache_key = 'article_content_v1_' + hashlib.md5(url.encode()).hexdigest()
+    cache_key = 'article_content_v2_' + hashlib.md5(url.encode()).hexdigest()
     cached = cache.get(cache_key)
     if cached is not None:
         return cached
@@ -83,20 +172,27 @@ def fetch_article_content(url: str) -> dict:
                 pass
 
         if downloaded:
-            # Extract with JSON metadata so we can pull author/date separately
+            # ── Metadata (author, date) ───────────────────────────────────
             meta_json = trafilatura.extract(
                 downloaded,
                 include_comments=False,
                 include_tables=True,
+                include_images=True,
+                include_links=True,
+                include_formatting=True,
                 no_fallback=False,
                 with_metadata=True,
                 output_format='json',
             )
-            # Also extract as HTML for nicely-tagged paragraphs
+
+            # ── Full HTML body ────────────────────────────────────────────
             html_out = trafilatura.extract(
                 downloaded,
                 include_comments=False,
                 include_tables=True,
+                include_images=True,       # ← images now included
+                include_links=True,        # ← hyperlinks preserved
+                include_formatting=True,   # ← bold / italic / br preserved
                 no_fallback=False,
                 with_metadata=False,
                 output_format='html',
@@ -106,13 +202,15 @@ def fetch_article_content(url: str) -> dict:
             date   = ''
             if meta_json:
                 try:
-                    meta = _json.loads(meta_json)
+                    meta   = _json.loads(meta_json)
                     author = meta.get('author') or ''
                     date   = (meta.get('date') or '')[:10]
                 except Exception:
                     pass
 
             if html_out and html_out.strip():
+                # Fix relative image URLs, add lazy-load attrs, wrap tables
+                html_out = _postprocess_article_html(html_out, url)
                 result = {
                     'html':   html_out,
                     'author': author,
