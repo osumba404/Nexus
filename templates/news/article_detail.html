@@ -1,0 +1,377 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ article.title|truncatechars:70 }} — Epicenter Nexus{% endblock %}
+{% block meta_description %}{{ article.excerpt|truncatechars:160 }}{% endblock %}
+{% block og_type %}article{% endblock %}
+{% block og_title %}{{ article.title|truncatechars:70 }}{% endblock %}
+{% block og_description %}{{ article.excerpt|truncatechars:200 }}{% endblock %}
+{% if article.image_url %}{% block og_image %}{{ article.image_url }}{% endblock %}{% endif %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+  <!-- ── Back button ───────────────────────────────────────────────────── -->
+  <a href="javascript:history.back()"
+     class="inline-flex items-center gap-1.5 text-sm nex-text-muted hover:text-blue-400 transition-colors mb-6">
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+    </svg>
+    Back to feed
+  </a>
+
+  <!-- ── Article card ──────────────────────────────────────────────────── -->
+  <article class="nex-card rounded-2xl overflow-hidden" itemscope itemtype="https://schema.org/NewsArticle">
+
+    <!-- Hero image -->
+    {% if article.image_url %}
+    <div class="w-full h-56 sm:h-72 overflow-hidden">
+      <img src="{{ article.image_url }}"
+           alt="{{ article.title|truncatechars:80 }}"
+           itemprop="image"
+           loading="eager"
+           class="w-full h-full object-cover"
+           onerror="this.parentElement.style.display='none'" />
+    </div>
+    {% endif %}
+
+    <div class="p-6 sm:p-8">
+
+      <!-- Meta row -->
+      <div class="flex flex-wrap items-center gap-2 mb-4">
+        {% if article.category %}
+        <a href="/?category={{ article.category }}"
+           class="text-xs bg-blue-600/15 border border-blue-500/30 text-blue-400 px-3 py-1 rounded-full uppercase tracking-wide font-semibold hover:bg-blue-600 hover:text-white hover:border-blue-500 transition-colors">
+          {{ article.category }}
+        </a>
+        {% endif %}
+        {% if article.published_at %}
+        <time datetime="{{ article.published_at }}" itemprop="datePublished"
+              class="text-xs nex-text-muted">
+          {{ article.published_at|slice:":10" }}
+        </time>
+        {% endif %}
+        <!-- Source badge -->
+        <span class="ml-auto flex items-center gap-1.5 text-xs font-semibold nex-text-secondary border nex-border-top px-3 py-1 rounded-full"
+              style="border-color: var(--nex-border)"
+              itemprop="publisher" itemscope itemtype="https://schema.org/Organization">
+          <svg class="w-3.5 h-3.5 text-blue-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z"/>
+          </svg>
+          <span itemprop="name">{{ article.source_name }}</span>
+        </span>
+      </div>
+
+      <!-- Title -->
+      <h1 class="text-2xl sm:text-3xl font-bold nex-text leading-tight mb-6" itemprop="headline">
+        {{ article.title }}
+      </h1>
+
+      <!-- ── Interaction bar ──────────────────────────────────────────── -->
+      <div class="flex items-center gap-3 py-4 mb-6" style="border-top:1px solid var(--nex-border); border-bottom:1px solid var(--nex-border)">
+
+        {% if user.is_authenticated %}
+          {% include "news/partials/interaction_btn.html" with interaction_type="like" active=article.liked url=article.url title=article.title excerpt=article.excerpt image_url=article.image_url source_name=article.source_name published_at=article.published_at category=article.category %}
+          {% include "news/partials/interaction_btn.html" with interaction_type="bookmark" active=article.bookmarked url=article.url title=article.title excerpt=article.excerpt image_url=article.image_url source_name=article.source_name published_at=article.published_at category=article.category %}
+        {% else %}
+          <a href="/accounts/login/?next={{ request.get_full_path|urlencode }}"
+             class="flex items-center gap-1.5 text-xs nex-text-muted hover:text-blue-400 transition-colors px-2 py-1">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+            </svg>
+            Like
+          </a>
+          <a href="/accounts/login/?next={{ request.get_full_path|urlencode }}"
+             class="flex items-center gap-1.5 text-xs nex-text-muted hover:text-blue-400 transition-colors px-2 py-1">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"/>
+            </svg>
+            Bookmark
+          </a>
+        {% endif %}
+
+        <!-- Comment count shortcut -->
+        <a href="#comments"
+           class="flex items-center gap-1.5 text-xs nex-text-muted hover:text-blue-400 transition-colors px-2 py-1">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+          </svg>
+          {{ comment_count }} comment{{ comment_count|pluralize }}
+        </a>
+
+        <!-- Share button -->
+        <button onclick="nexusOpenShare()"
+                class="ml-auto flex items-center gap-1.5 text-xs font-medium text-blue-400 hover:text-blue-300 transition-colors px-3 py-1.5 rounded-lg border border-blue-500/30 hover:border-blue-400 hover:bg-blue-600/10">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"/>
+          </svg>
+          Share
+        </button>
+      </div>
+
+      <!-- Article excerpt / preview -->
+      {% if article.excerpt %}
+      <div class="mb-6" itemprop="description">
+        <p class="nex-text-secondary text-base leading-relaxed">{{ article.excerpt }}</p>
+        <p class="text-xs nex-text-muted mt-4 flex items-center gap-1.5">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+          This is a preview. Read the complete article at
+          <a href="{{ article.url }}" target="_blank" rel="noopener noreferrer"
+             class="text-blue-400 hover:underline font-medium">{{ article.source_name }}</a>.
+        </p>
+      </div>
+      {% endif %}
+
+    </div>
+  </article>
+
+  <!-- ── Comments ─────────────────────────────────────────────────────── -->
+  <section id="comments" class="mt-8" aria-label="Comments">
+    <h2 class="text-lg font-bold nex-text mb-5 flex items-center gap-2">
+      <svg class="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+      </svg>
+      {{ comment_count }} Comment{{ comment_count|pluralize }}
+    </h2>
+
+    <!-- Comment form -->
+    {% if user.is_authenticated %}
+    <form hx-post="/article/comment/"
+          hx-target="#comment-list"
+          hx-swap="beforeend"
+          hx-on::after-request="this.reset()"
+          class="nex-card rounded-xl p-4 mb-6">
+      {% csrf_token %}
+      <input type="hidden" name="article_url" value="{{ article.url }}" />
+      <div class="flex gap-3 items-start">
+        <div class="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-bold flex-shrink-0 mt-1">
+          {{ user.username|slice:":1"|upper }}
+        </div>
+        <div class="flex-1">
+          <textarea name="text"
+                    rows="3"
+                    maxlength="2000"
+                    placeholder="Share your thoughts on this article…"
+                    required
+                    class="nex-input w-full rounded-lg px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+          <div class="flex justify-end mt-2">
+            <button type="submit"
+                    class="px-4 py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium rounded-lg transition-colors">
+              Post comment
+            </button>
+          </div>
+        </div>
+      </div>
+    </form>
+    {% else %}
+    <div class="nex-card rounded-xl p-4 mb-6 text-center">
+      <p class="text-sm nex-text-muted">
+        <a href="/accounts/login/?next={{ request.get_full_path|urlencode }}"
+           class="text-blue-400 hover:underline font-medium">Log in</a>
+        to join the conversation.
+      </p>
+    </div>
+    {% endif %}
+
+    <!-- Existing comments -->
+    <div id="comment-list" class="space-y-5">
+      {% for comment in comments %}
+        {% include "news/partials/comment.html" %}
+      {% empty %}
+        <div id="no-comments" class="text-center py-8 nex-text-muted text-sm">
+          <svg class="w-10 h-10 mx-auto mb-2 opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                  d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+          </svg>
+          No comments yet — be the first!
+        </div>
+      {% endfor %}
+    </div>
+  </section>
+
+  <!-- ── Read from source ─────────────────────────────────────────────── -->
+  <div class="mt-10 nex-card rounded-2xl p-6 text-center">
+    <div class="w-12 h-12 bg-blue-600/15 border border-blue-500/30 rounded-full flex items-center justify-center mx-auto mb-3">
+      <svg class="w-6 h-6 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z"/>
+      </svg>
+    </div>
+    <p class="text-xs nex-text-muted uppercase tracking-widest font-semibold mb-1">Original Source</p>
+    <p class="text-lg font-bold nex-text mb-1">{{ article.source_name }}</p>
+    <p class="text-sm nex-text-muted mb-5">Read the complete article directly from the source.</p>
+    <a href="{{ article.url }}"
+       target="_blank"
+       rel="noopener noreferrer"
+       class="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-xl transition-colors text-sm shadow-lg shadow-blue-900/30">
+      Read article from {{ article.source_name }}
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+      </svg>
+    </a>
+  </div>
+
+</div>
+
+<!-- ── Share popup ──────────────────────────────────────────────────────── -->
+<div id="share-modal"
+     class="fixed inset-0 z-50 hidden flex items-center justify-center p-4"
+     onclick="if(event.target===this) nexusCloseShare()">
+  <!-- Backdrop -->
+  <div class="absolute inset-0 bg-black/60 backdrop-blur-sm"></div>
+
+  <!-- Panel -->
+  <div class="relative nex-card rounded-2xl p-6 w-full max-w-sm shadow-2xl">
+    <!-- Close -->
+    <button onclick="nexusCloseShare()"
+            class="absolute top-4 right-4 nex-text-muted hover:nex-text transition-colors">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+      </svg>
+    </button>
+
+    <h3 class="text-base font-bold nex-text mb-1">Share this article</h3>
+    <p class="text-xs nex-text-muted mb-5 truncate pr-8">{{ article.title|truncatechars:60 }}</p>
+
+    <!-- Native share (mobile) -->
+    <button id="native-share-btn"
+            onclick="nexusNativeShare()"
+            class="hidden w-full flex items-center gap-3 px-4 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-medium text-sm transition-colors mb-3">
+      <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"/>
+      </svg>
+      Share via…
+    </button>
+
+    <!-- Social links -->
+    <div class="grid grid-cols-3 gap-2 mb-4">
+      <a id="share-whatsapp" href="#" target="_blank" rel="noopener noreferrer"
+         class="flex flex-col items-center gap-1.5 p-3 rounded-xl nex-btn-secondary hover:border-green-500 hover:text-green-400 transition-colors text-xs font-medium">
+        <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+          <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+        </svg>
+        WhatsApp
+      </a>
+      <a id="share-twitter" href="#" target="_blank" rel="noopener noreferrer"
+         class="flex flex-col items-center gap-1.5 p-3 rounded-xl nex-btn-secondary hover:border-sky-500 hover:text-sky-400 transition-colors text-xs font-medium">
+        <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+          <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.748l7.73-8.835L1.254 2.25H8.08l4.259 5.631zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+        </svg>
+        X / Twitter
+      </a>
+      <a id="share-facebook" href="#" target="_blank" rel="noopener noreferrer"
+         class="flex flex-col items-center gap-1.5 p-3 rounded-xl nex-btn-secondary hover:border-blue-500 hover:text-blue-400 transition-colors text-xs font-medium">
+        <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+          <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+        </svg>
+        Facebook
+      </a>
+    </div>
+
+    <!-- Copy link -->
+    <div class="flex items-center gap-2 p-3 rounded-xl" style="background:var(--nex-bg-secondary); border:1px solid var(--nex-border)">
+      <input id="share-link-input"
+             type="text"
+             readonly
+             value="{{ detail_url }}"
+             class="flex-1 bg-transparent text-xs nex-text-secondary outline-none truncate min-w-0" />
+      <button onclick="nexusCopyLink()"
+              id="copy-btn"
+              class="flex-shrink-0 text-xs font-semibold text-blue-400 hover:text-blue-300 transition-colors px-2 py-1">
+        Copy
+      </button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+
+{% block extra_js %}
+<script>
+(function(){
+  /* ── Share modal ──────────────────────────────────────────────────────── */
+  var TITLE  = "{{ article.title|escapejs }}";
+  var URL    = "{{ detail_url|escapejs }}";
+  var SOURCE = "{{ article.source_name|escapejs }}";
+
+  window.nexusOpenShare = function(){
+    // Populate social links
+    var enc  = encodeURIComponent;
+    var text = enc(TITLE + ' — via Epicenter Nexus');
+    document.getElementById('share-whatsapp').href  = 'https://wa.me/?text=' + enc(TITLE + '\n' + URL);
+    document.getElementById('share-twitter').href   = 'https://twitter.com/intent/tweet?text=' + text + '&url=' + enc(URL);
+    document.getElementById('share-facebook').href  = 'https://www.facebook.com/sharer/sharer.php?u=' + enc(URL);
+    document.getElementById('share-link-input').value = URL;
+
+    // Show native share button only when Web Share API available
+    if (navigator.share) {
+      document.getElementById('native-share-btn').classList.remove('hidden');
+      document.getElementById('native-share-btn').classList.add('flex');
+    }
+
+    document.getElementById('share-modal').classList.remove('hidden');
+    document.getElementById('share-modal').classList.add('flex');
+    document.body.style.overflow = 'hidden';
+  };
+
+  window.nexusCloseShare = function(){
+    document.getElementById('share-modal').classList.add('hidden');
+    document.getElementById('share-modal').classList.remove('flex');
+    document.body.style.overflow = '';
+  };
+
+  window.nexusNativeShare = function(){
+    if (navigator.share) {
+      navigator.share({ title: TITLE, url: URL }).catch(function(){});
+    }
+  };
+
+  window.nexusCopyLink = function(){
+    var input = document.getElementById('share-link-input');
+    var btn   = document.getElementById('copy-btn');
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(input.value).then(function(){
+        btn.textContent = 'Copied!';
+        btn.classList.replace('text-blue-400', 'text-green-400');
+        setTimeout(function(){ btn.textContent = 'Copy'; btn.classList.replace('text-green-400', 'text-blue-400'); }, 2000);
+      });
+    } else {
+      input.select();
+      document.execCommand('copy');
+      btn.textContent = 'Copied!';
+      setTimeout(function(){ btn.textContent = 'Copy'; }, 2000);
+    }
+  };
+
+  // Keyboard: Escape closes modal
+  document.addEventListener('keydown', function(e){
+    if (e.key === 'Escape') nexusCloseShare();
+  });
+
+  // Auto-remove "no comments" placeholder when first comment is added
+  document.body.addEventListener('htmx:afterSwap', function(e){
+    if (e.detail.target && e.detail.target.id === 'comment-list') {
+      var placeholder = document.getElementById('no-comments');
+      if (placeholder) placeholder.remove();
+      // bump the comment count badge
+      var h2 = document.querySelector('#comments h2');
+      if (h2) {
+        var current = parseInt(h2.textContent.match(/\d+/) || [0]) + 1;
+        h2.innerHTML = h2.innerHTML.replace(/\d+\s+Comment/, current + ' Comment' + (current !== 1 ? 's' : ''));
+      }
+    }
+  });
+})();
+</script>
+{% endblock %}

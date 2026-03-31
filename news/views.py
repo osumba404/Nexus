@@ -6,7 +6,7 @@ from django.views.decorators.http import require_http_methods
 from django.contrib import messages
 from django.conf import settings
 
-from .models import SavedArticle
+from .models import SavedArticle, ArticleComment
 from .services import (
     NewsAggregatorService,
     ALL_CATEGORIES, CONTINENTS, POPULAR_COUNTRIES, SORT_OPTIONS,
@@ -285,6 +285,99 @@ def dashboard(request):
         'bookmark_count': bookmark_count,
         'like_count':     like_count,
     })
+
+
+@require_http_methods(['GET'])
+def article_detail(request):
+    """
+    Internal article detail page.
+    Article data is passed via query-string params from the feed card.
+    Falls back gracefully when params are missing (e.g. deep/shared links).
+    """
+    article_url  = request.GET.get('url', '').strip()
+    if not article_url:
+        return redirect('/')
+
+    article = {
+        'url':          article_url,
+        'title':        request.GET.get('title', 'Article').strip(),
+        'excerpt':      request.GET.get('excerpt', '').strip(),
+        'image_url':    request.GET.get('image_url', '').strip(),
+        'source_name':  request.GET.get('source_name', 'Source').strip(),
+        'published_at': request.GET.get('published_at', '').strip(),
+        'category':     request.GET.get('category', '').strip(),
+        'liked':        False,
+        'bookmarked':   False,
+    }
+
+    # Enrich with saved-state if authenticated
+    if request.user.is_authenticated:
+        qs = SavedArticle.objects.filter(
+            user=request.user, url=article_url
+        ).values_list('interaction_type', flat=True)
+        article['liked']      = SavedArticle.LIKE     in qs
+        article['bookmarked'] = SavedArticle.BOOKMARK in qs
+
+    comments       = ArticleComment.objects.filter(article_url=article_url).select_related('user')
+    comment_count  = comments.count()
+
+    # Build the shareable link for this detail page
+    from urllib.parse import urlencode as _urlencode
+    share_params = {
+        'url':         article['url'],
+        'title':       article['title'],
+        'source_name': article['source_name'],
+        'published_at':article['published_at'],
+        'image_url':   article['image_url'],
+        'excerpt':     article['excerpt'],
+        'category':    article['category'],
+    }
+    detail_url = request.build_absolute_uri(
+        '/article/?' + _urlencode({k: v for k, v in share_params.items() if v})
+    )
+
+    return render(request, 'news/article_detail.html', {
+        'article':       article,
+        'comments':      comments,
+        'comment_count': comment_count,
+        'detail_url':    detail_url,
+    })
+
+
+@login_required
+@require_http_methods(['POST'])
+def post_comment(request):
+    """Submit a comment on an article. HTMX or plain POST."""
+    article_url = request.POST.get('article_url', '').strip()
+    text        = request.POST.get('text', '').strip()
+
+    if not article_url or not text:
+        if request.htmx:
+            return HttpResponse('<p class="text-red-400 text-sm">Comment cannot be empty.</p>', status=400)
+        return redirect(request.META.get('HTTP_REFERER', '/'))
+
+    comment = ArticleComment.objects.create(
+        article_url=article_url,
+        user=request.user,
+        text=text[:2000],
+    )
+
+    if request.htmx:
+        return render(request, 'news/partials/comment.html', {'comment': comment, 'is_new': True})
+
+    return redirect(request.META.get('HTTP_REFERER', '/'))
+
+
+@login_required
+@require_http_methods(['POST'])
+def delete_comment(request, pk):
+    """Delete own comment."""
+    comment = ArticleComment.objects.filter(pk=pk, user=request.user).first()
+    if comment:
+        comment.delete()
+    if request.htmx:
+        return HttpResponse('')   # empty → HTMX outerHTML swap removes the element
+    return redirect(request.META.get('HTTP_REFERER', '/'))
 
 
 @login_required

@@ -69,9 +69,9 @@
           {% include "news/partials/interaction_btn.html" with interaction_type="bookmark" active=article.bookmarked url=article.url title=article.title excerpt=article.excerpt image_url=article.image_url source_name=article.source_name published_at=article.published_at category=article.category %}
         {% endif %}
 
-        <a href="{{ article.url }}" target="_blank" rel="noopener noreferrer"
+        <a href="/article/?url={{ article.url|urlencode }}&title={{ article.title|urlencode }}&source_name={{ article.source_name|urlencode }}&published_at={{ article.published_at|urlencode }}&image_url={{ article.image_url|urlencode }}&excerpt={{ article.excerpt|truncatechars:400|urlencode }}&category={{ article.category|urlencode }}"
            class="text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1 transition-colors ml-1"
-           aria-label="Read full article: {{ article.title|truncatechars:50 }}">
+           aria-label="Read article: {{ article.title|truncatechars:50 }}">
           Read full
           <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
