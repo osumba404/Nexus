@@ -321,33 +321,6 @@ def _sort_by_freshness(articles: list[dict], seen_urls: set) -> list[dict]:
     return unseen + seen
 
 
-def _detect_breaking(articles: list[dict]) -> tuple[list[dict], list[dict]]:
-    """
-    Split articles into (breaking, normal).
-    Breaking = published within last 2 hours OR 'breaking' in title.
-    """
-    from datetime import datetime, timezone, timedelta
-    cutoff = datetime.now(timezone.utc) - timedelta(hours=2)
-    breaking, normal = [], []
-    for a in articles:
-        pub = a.get('published_at', '')
-        is_recent = False
-        if pub:
-            for fmt in ('%Y-%m-%d %H:%M:%S', '%Y-%m-%dT%H:%M:%SZ', '%Y-%m-%dT%H:%M:%S%z'):
-                try:
-                    dt = datetime.strptime(pub[:19], fmt[:len(pub[:19])])
-                    if dt.tzinfo is None:
-                        dt = dt.replace(tzinfo=timezone.utc)
-                    is_recent = dt >= cutoff
-                    break
-                except Exception:
-                    continue
-        is_breaking_title = 'breaking' in a.get('title', '').lower()
-        if is_recent or is_breaking_title:
-            breaking.append(a)
-        else:
-            normal.append(a)
-    return breaking, normal
 
 
 # ── Individual fetchers ───────────────────────────────────────────────────────
@@ -650,22 +623,18 @@ class NewsAggregatorService:
         # Merge, deduplicate, sort
         all_articles = _deduplicate(all_articles)
 
-        # Sort: unseen first, then seen — each group newest-first
+        # Sort: unseen first (newest-first within each group)
         all_articles.sort(key=lambda a: a.get('published_at') or '', reverse=True)
         if seen_urls:
             all_articles = _sort_by_freshness(all_articles, seen_urls)
 
-        # Split breaking vs normal
-        breaking_articles, normal_articles = _detect_breaking(all_articles)
-
-        total = len(normal_articles)
+        total = len(all_articles)
         start = (page - 1) * page_size
-        page_articles = normal_articles[start:start + page_size]
+        page_articles = all_articles[start:start + page_size]
 
         has_keys = any(keys.values())
         result = {
             'articles': page_articles,
-            'breaking': breaking_articles[:10],
             'total': total,
             'page': page,
             'has_more': (start + page_size) < total,

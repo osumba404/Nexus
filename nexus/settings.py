@@ -35,10 +35,19 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django.contrib.sitemaps',
     'django_htmx',
     'core',
     'news',
 ]
+
+# ── SEO / Site identity ────────────────────────────────────────────────────
+SITE_NAME        = 'Epicenter Nexus'
+SITE_TAGLINE     = 'Real-Time News for Kenya, Africa & the World'
+SITE_DESCRIPTION = ('Epicenter Nexus is your live news hub delivering the latest '
+                    'breaking news, business, politics, technology, sports and '
+                    'more from Kenya, Africa and around the world — updated in real time.')
+SITE_URL         = env('SITE_URL', default='https://epicenternexus.com')
 
 INTERNAL_IPS = [
     "127.0.0.1",
@@ -103,7 +112,7 @@ USE_TZ = True
 
 
 # Static files
-STATIC_URL = 'static/'
+STATIC_URL = '/static/'
 STATICFILES_DIRS = [BASE_DIR / 'static']
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 

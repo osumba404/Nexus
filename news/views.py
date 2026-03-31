@@ -97,14 +97,11 @@ def _enrich(articles: list, saved: dict) -> list:
 
 
 def _base_context(request, params, result):
-    all_visible = result['articles'] + result.get('breaking', [])
-    saved = _saved_states(request, all_visible)
+    saved = _saved_states(request, result['articles'])
     _enrich(result['articles'], saved)
-    _enrich(result.get('breaking', []), saved)
     _mark_seen(request, result['articles'])
     return {
         'articles':     result['articles'],
-        'breaking':     result.get('breaking', []),
         'total':        result['total'],
         'has_more':     result['has_more'],
         'current_page': result['page'],
@@ -159,14 +156,12 @@ def news_feed(request):
         force_refresh=force_refresh,
     )
 
-    saved = _saved_states(request, result['articles'] + result.get('breaking', []))
+    saved = _saved_states(request, result['articles'])
     _enrich(result['articles'], saved)
-    _enrich(result.get('breaking', []), saved)
     _mark_seen(request, result['articles'])
 
     ctx = {
         'articles':     result['articles'],
-        'breaking':     result.get('breaking', []),
         'has_more':     result['has_more'],
         'current_page': result['page'],
         'error':        result['error'],

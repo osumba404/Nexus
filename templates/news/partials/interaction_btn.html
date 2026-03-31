@@ -2,13 +2,24 @@
 Renders a single like or bookmark toggle button.
 Works via HTMX POST — swaps itself on success.
 The CSRF token is injected globally via htmx:configRequest in base.html.
+
+Article data is stored in data-* attributes (Django auto-escaping makes them
+HTML-safe for any character, including apostrophes and ampersands).
+hx-vals reads them back via a JS expression so no manual escaping is needed.
 {% endcomment %}
 {% if interaction_type == 'like' %}
 <button
   hx-post="/interact/"
   hx-target="this"
   hx-swap="outerHTML"
-  hx-vals='{"type":"like","url":"{{ url|escapejs }}","title":"{{ title|escapejs }}","excerpt":"{{ excerpt|truncatechars:300|escapejs }}","image_url":"{{ image_url|escapejs }}","source_name":"{{ source_name|escapejs }}","published_at":"{{ published_at|escapejs }}","category":"{{ category|escapejs }}"}'
+  hx-vals='js:{type:"like",url:this.dataset.url,title:this.dataset.title,excerpt:this.dataset.excerpt,image_url:this.dataset.imageUrl,source_name:this.dataset.sourceName,published_at:this.dataset.publishedAt,category:this.dataset.category}'
+  data-url="{{ url }}"
+  data-title="{{ title }}"
+  data-excerpt="{{ excerpt|truncatechars:300 }}"
+  data-image-url="{{ image_url }}"
+  data-source-name="{{ source_name }}"
+  data-published-at="{{ published_at }}"
+  data-category="{{ category }}"
   title="{{ active|yesno:'Unlike,Like this article' }}"
   class="p-1 rounded transition-colors {% if active %}text-red-400 hover:text-red-300{% else %}text-gray-500 hover:text-red-400{% endif %}">
   <svg class="w-4 h-4" fill="{% if active %}currentColor{% else %}none{% endif %}" stroke="currentColor" viewBox="0 0 24 24">
@@ -21,7 +32,14 @@ The CSRF token is injected globally via htmx:configRequest in base.html.
   hx-post="/interact/"
   hx-target="this"
   hx-swap="outerHTML"
-  hx-vals='{"type":"bookmark","url":"{{ url|escapejs }}","title":"{{ title|escapejs }}","excerpt":"{{ excerpt|truncatechars:300|escapejs }}","image_url":"{{ image_url|escapejs }}","source_name":"{{ source_name|escapejs }}","published_at":"{{ published_at|escapejs }}","category":"{{ category|escapejs }}"}'
+  hx-vals='js:{type:"bookmark",url:this.dataset.url,title:this.dataset.title,excerpt:this.dataset.excerpt,image_url:this.dataset.imageUrl,source_name:this.dataset.sourceName,published_at:this.dataset.publishedAt,category:this.dataset.category}'
+  data-url="{{ url }}"
+  data-title="{{ title }}"
+  data-excerpt="{{ excerpt|truncatechars:300 }}"
+  data-image-url="{{ image_url }}"
+  data-source-name="{{ source_name }}"
+  data-published-at="{{ published_at }}"
+  data-category="{{ category }}"
   title="{{ active|yesno:'Remove bookmark,Bookmark this article' }}"
   class="p-1 rounded transition-colors {% if active %}text-blue-400 hover:text-blue-300{% else %}text-gray-500 hover:text-blue-400{% endif %}">
   <svg class="w-4 h-4" fill="{% if active %}currentColor{% else %}none{% endif %}" stroke="currentColor" viewBox="0 0 24 24">

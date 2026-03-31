@@ -1,26 +1,26 @@
 <!-- Trending articles sidebar partial -->
 {% if trending %}
-  <ul class="space-y-3">
-    {% for article in trending %}
-    <li>
-      <a href="{{ article.url }}" target="_blank" rel="noopener noreferrer"
-         class="flex gap-2.5 group">
-        {% if article.image_url %}
-        <img src="{{ article.image_url }}" alt=""
-             loading="lazy"
-             class="w-14 h-14 object-cover rounded-lg flex-shrink-0 opacity-80 group-hover:opacity-100 transition-opacity"
-             onerror="this.style.display='none'" />
-        {% endif %}
-        <div class="min-w-0">
-          <p class="text-xs text-gray-300 group-hover:text-blue-300 leading-snug line-clamp-3 transition-colors">
-            {{ article.title }}
-          </p>
-          <p class="text-xs text-gray-600 mt-1">{{ article.source_name }}</p>
-        </div>
-      </a>
-    </li>
-    {% endfor %}
-  </ul>
+<ul class="space-y-3" aria-label="Trending articles">
+  {% for article in trending %}
+  <li>
+    <a href="{{ article.url }}" target="_blank" rel="noopener noreferrer"
+       class="flex gap-2.5 group" aria-label="{{ article.title }}">
+      {% if article.image_url %}
+      <img src="{{ article.image_url }}" alt=""
+           loading="lazy" width="56" height="56"
+           class="w-14 h-14 object-cover rounded-lg flex-shrink-0 opacity-90 group-hover:opacity-100 transition-opacity"
+           onerror="this.style.display='none'" />
+      {% endif %}
+      <div class="min-w-0">
+        <p class="text-xs nex-text-secondary group-hover:text-blue-500 leading-snug line-clamp-3 transition-colors">
+          {{ article.title }}
+        </p>
+        <p class="text-xs nex-text-muted mt-1">{{ article.source_name }}</p>
+      </div>
+    </a>
+  </li>
+  {% endfor %}
+</ul>
 {% else %}
-  <p class="text-xs text-gray-600 text-center py-4">No trending articles available</p>
+<p class="text-xs nex-text-muted text-center py-4">No trending articles available</p>
 {% endif %}

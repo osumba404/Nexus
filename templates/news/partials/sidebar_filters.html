@@ -1,25 +1,20 @@
 <!-- Sidebar filter panel -->
-<div class="bg-navy-900 border border-navy-700 rounded-xl p-4 sticky top-20">
+<div class="nex-card rounded-xl p-4 sticky top-20">
   <div class="flex items-center justify-between mb-4">
-    <h2 class="text-sm font-semibold text-white">Filters</h2>
-    {# ── "Clear all" is a plain full-page navigation — no HTMX.          #}
-    {# This guarantees the entire page (sidebar + feed + URL) resets.     #}
-    <a href="/"
-       class="text-xs text-blue-400 hover:text-white transition-colors font-medium">
+    <h2 class="text-sm font-semibold nex-text">Filters</h2>
+    {# Plain link — forces a full page reload so ALL state (URL, sidebar, feed) resets cleanly #}
+    <a href="/" class="text-xs text-blue-500 hover:text-blue-600 transition-colors font-medium">
       Clear all
     </a>
   </div>
 
-  <form method="GET" action="/"
-        id="filter-form"
-        class="space-y-4">
+  <form method="GET" action="/" id="filter-form" class="space-y-4">
 
     <!-- Continent -->
     <div>
-      <label class="block text-xs font-medium text-gray-400 mb-1.5">Continent</label>
-      <select name="continent"
-              class="w-full bg-navy-800 border border-navy-600 rounded-lg px-3 py-2 text-sm text-gray-200
-                     focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400 transition-colors"
+      <label class="block text-xs font-medium nex-text-muted mb-1.5" for="sel-continent">Continent</label>
+      <select name="continent" id="sel-continent"
+              class="w-full nex-input rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500"
               onchange="nexusSubmitFilters()">
         {% for val, label in continents %}
           <option value="{{ val }}" {% if filters.continent == val %}selected{% endif %}>{{ label }}</option>
@@ -29,10 +24,9 @@
 
     <!-- Country -->
     <div>
-      <label class="block text-xs font-medium text-gray-400 mb-1.5">Country</label>
-      <select name="country"
-              class="w-full bg-navy-800 border border-navy-600 rounded-lg px-3 py-2 text-sm text-gray-200
-                     focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400 transition-colors"
+      <label class="block text-xs font-medium nex-text-muted mb-1.5" for="sel-country">Country</label>
+      <select name="country" id="sel-country"
+              class="w-full nex-input rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500"
               onchange="nexusSubmitFilters()">
         {% for val, label in countries %}
           <option value="{{ val }}" {% if filters.country == val %}selected{% endif %}>{{ label }}</option>
@@ -42,11 +36,9 @@
 
     <!-- Category -->
     <div>
-      <label class="block text-xs font-medium text-gray-400 mb-1.5">Category</label>
-      <select name="category"
-              id="category-select"
-              class="w-full bg-navy-800 border border-navy-600 rounded-lg px-3 py-2 text-sm text-gray-200
-                     focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400 transition-colors"
+      <label class="block text-xs font-medium nex-text-muted mb-1.5" for="sel-category">Category</label>
+      <select name="category" id="sel-category"
+              class="w-full nex-input rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500"
               onchange="nexusSubmitFilters()">
         <option value="">All Categories</option>
         {% for cat in categories %}
@@ -57,10 +49,9 @@
 
     <!-- Language -->
     <div>
-      <label class="block text-xs font-medium text-gray-400 mb-1.5">Language</label>
-      <select name="language"
-              class="w-full bg-navy-800 border border-navy-600 rounded-lg px-3 py-2 text-sm text-gray-200
-                     focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400 transition-colors"
+      <label class="block text-xs font-medium nex-text-muted mb-1.5" for="sel-language">Language</label>
+      <select name="language" id="sel-language"
+              class="w-full nex-input rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500"
               onchange="nexusSubmitFilters()">
         <option value="en" {% if filters.language == 'en' or not filters.language %}selected{% endif %}>English</option>
         <option value="fr" {% if filters.language == 'fr' %}selected{% endif %}>French</option>
@@ -75,25 +66,22 @@
 
     <!-- Date range -->
     <div>
-      <label class="block text-xs font-medium text-gray-400 mb-1.5">Date Range</label>
+      <label class="block text-xs font-medium nex-text-muted mb-1.5">Date Range</label>
       <div class="space-y-2">
         <input type="date" name="from_date" value="{{ filters.from_date|default:'' }}"
-               placeholder="From"
-               class="w-full bg-navy-800 border border-navy-600 rounded-lg px-3 py-2 text-sm text-gray-200
-                      focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400 transition-colors" />
+               aria-label="From date"
+               class="w-full nex-input rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500" />
         <input type="date" name="to_date" value="{{ filters.to_date|default:'' }}"
-               placeholder="To"
-               class="w-full bg-navy-800 border border-navy-600 rounded-lg px-3 py-2 text-sm text-gray-200
-                      focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400 transition-colors" />
+               aria-label="To date"
+               class="w-full nex-input rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500" />
       </div>
     </div>
 
     <!-- Sort by -->
     <div>
-      <label class="block text-xs font-medium text-gray-400 mb-1.5">Sort By</label>
-      <select name="sort_by"
-              class="w-full bg-navy-800 border border-navy-600 rounded-lg px-3 py-2 text-sm text-gray-200
-                     focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400 transition-colors"
+      <label class="block text-xs font-medium nex-text-muted mb-1.5" for="sel-sort">Sort By</label>
+      <select name="sort_by" id="sel-sort"
+              class="w-full nex-input rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500"
               onchange="nexusSubmitFilters()">
         {% for val, label in sort_options %}
           <option value="{{ val }}" {% if filters.sort_by == val %}selected{% endif %}>{{ label }}</option>
@@ -101,20 +89,22 @@
       </select>
     </div>
 
-    <!-- Apply button (for date range which has no onchange) -->
+    <!-- Apply button (useful after changing date range) -->
     <button type="button" onclick="nexusSubmitFilters()"
-            class="w-full py-2.5 text-sm bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-medium transition-colors">
+            class="w-full py-2.5 text-sm bg-blue-600 hover:bg-blue-500 text-white
+                   rounded-lg font-medium transition-colors">
       Apply Filters
     </button>
 
   </form>
 
   <!-- Quick topic pills -->
-  <div class="mt-5 pt-4 border-t border-navy-700">
-    <p class="text-xs font-medium text-gray-400 mb-2">Quick Topics</p>
-    <div class="flex flex-wrap gap-1.5" id="topic-pills">
+  <div class="mt-5 pt-4 nex-border-top">
+    <p class="text-xs font-medium nex-text-muted mb-2">Quick Topics</p>
+    <div class="flex flex-wrap gap-1.5" role="list" aria-label="Quick topic filters">
       {% for topic in quick_topics %}
         <button type="button"
+                role="listitem"
                 class="topic-pill text-xs px-2.5 py-1 rounded-full border transition-colors
                   {% if filters.category == topic %}
                     bg-blue-600 border-blue-500 text-white
@@ -122,6 +112,7 @@
                     bg-navy-800 border-navy-600 text-gray-400 hover:border-blue-500 hover:text-blue-300
                   {% endif %}"
                 data-topic="{{ topic }}"
+                aria-label="Filter by {{ topic }}"
                 onclick="nexusSelectTopic('{{ topic }}')">
           {{ topic|title }}
         </button>
