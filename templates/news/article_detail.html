@@ -114,21 +114,33 @@
         </button>
       </div>
 
-      <!-- Article excerpt / preview -->
-      {% if article.excerpt %}
-      <div class="mb-6" itemprop="description">
-        <p class="nex-text-secondary text-base leading-relaxed">{{ article.excerpt }}</p>
-        <p class="text-xs nex-text-muted mt-4 flex items-center gap-1.5">
-          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                  d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-          </svg>
-          This is a preview. Read the complete article at
-          <a href="{{ article.url }}" target="_blank" rel="noopener noreferrer"
-             class="text-blue-400 hover:underline font-medium">{{ article.source_name }}</a>.
-        </p>
+      <!-- ── Full article body (HTMX async) ──────────────────────────────── -->
+      <div class="mb-6" itemprop="articleBody">
+
+        <!-- Skeleton: visible until content arrives. Sibling of the HTMX
+             target so it is NEVER inside the element being swapped — that
+             would cause HTMX to error silently and leave the skeleton
+             permanently on screen. -->
+        <div id="article-loading-skeleton" class="space-y-3 animate-pulse">
+          <div class="h-4 rounded" style="background:var(--nex-bg-secondary);width:100%"></div>
+          <div class="h-4 rounded" style="background:var(--nex-bg-secondary);width:92%"></div>
+          <div class="h-4 rounded" style="background:var(--nex-bg-secondary);width:96%"></div>
+          <div class="h-4 rounded" style="background:var(--nex-bg-secondary);width:88%"></div>
+          <div class="h-4 rounded mt-5" style="background:var(--nex-bg-secondary);width:100%"></div>
+          <div class="h-4 rounded" style="background:var(--nex-bg-secondary);width:94%"></div>
+          <div class="h-4 rounded" style="background:var(--nex-bg-secondary);width:78%"></div>
+          <div class="h-4 rounded mt-5" style="background:var(--nex-bg-secondary);width:100%"></div>
+          <div class="h-4 rounded" style="background:var(--nex-bg-secondary);width:90%"></div>
+          <div class="h-4 rounded" style="background:var(--nex-bg-secondary);width:70%"></div>
+        </div>
+
+        <!-- Empty HTMX target — content injected here on load.
+             No hx-indicator so HTMX never touches the skeleton's classes. -->
+        <div id="article-body-target"
+             hx-get="/article/content/?url={{ article.url|urlencode }}"
+             hx-trigger="load"
+             hx-swap="innerHTML"></div>
       </div>
-      {% endif %}
 
     </div>
   </article>
@@ -357,6 +369,27 @@
   // Keyboard: Escape closes modal
   document.addEventListener('keydown', function(e){
     if (e.key === 'Escape') nexusCloseShare();
+  });
+
+  // Remove article skeleton once content has been injected
+  document.body.addEventListener('htmx:afterSwap', function(e){
+    if (e.detail.target && e.detail.target.id === 'article-body-target') {
+      var sk = document.getElementById('article-loading-skeleton');
+      if (sk) sk.remove();
+    }
+  });
+
+  // If the content request fails (4xx/5xx), replace skeleton with a message
+  document.body.addEventListener('htmx:responseError', function(e){
+    if (e.detail.target && e.detail.target.id === 'article-body-target') {
+      var sk = document.getElementById('article-loading-skeleton');
+      if (sk) {
+        sk.classList.remove('animate-pulse');
+        sk.innerHTML = '<p class="text-sm nex-text-muted text-center py-4">Content could not be loaded. '
+          + '<a href="{{ article.url|escapejs }}" target="_blank" rel="noopener noreferrer" '
+          + 'class="text-blue-400 hover:underline">Read at source</a>.</p>';
+      }
+    }
   });
 
   // Auto-remove "no comments" placeholder when first comment is added

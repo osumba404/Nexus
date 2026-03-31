@@ -30,6 +30,103 @@ from django.core.cache import cache
 
 logger = logging.getLogger(__name__)
 
+# ── Article content scraper ───────────────────────────────────────────────────
+
+_SCRAPE_HEADERS = {
+    'User-Agent': (
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
+        'AppleWebKit/537.36 (KHTML, like Gecko) '
+        'Chrome/124.0.0.0 Safari/537.36'
+    ),
+    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+    'Accept-Language': 'en-US,en;q=0.5',
+}
+
+_CONTENT_CACHE_TTL = 6 * 3600  # 6 hours
+
+
+def fetch_article_content(url: str) -> dict:
+    """
+    Fetch and extract the full article body from *url* using trafilatura.
+    Returns a dict::
+
+        {
+            'html':    '<p>…</p>',   # sanitised HTML — empty str on failure
+            'author':  'Jane Doe',   # may be empty
+            'date':    '2026-03-31', # may be empty
+            'failed':  False,        # True when extraction produced nothing
+        }
+
+    Results are cached in Django's cache for _CONTENT_CACHE_TTL seconds so
+    repeated visits to the same article page don't hammer the origin server.
+    """
+    cache_key = 'article_content_v1_' + hashlib.md5(url.encode()).hexdigest()
+    cached = cache.get(cache_key)
+    if cached is not None:
+        return cached
+
+    result = {'html': '', 'author': '', 'date': '', 'failed': True}
+    try:
+        import trafilatura
+        import json as _json
+
+        # Use trafilatura's own fetcher first (handles redirects + encoding)
+        downloaded = trafilatura.fetch_url(url)
+
+        # If trafilatura's fetcher fails (e.g. JS-gated), fall back to requests
+        if not downloaded:
+            try:
+                resp = requests.get(url, headers=_SCRAPE_HEADERS, timeout=15)
+                resp.raise_for_status()
+                downloaded = resp.text
+            except Exception:
+                pass
+
+        if downloaded:
+            # Extract with JSON metadata so we can pull author/date separately
+            meta_json = trafilatura.extract(
+                downloaded,
+                include_comments=False,
+                include_tables=True,
+                no_fallback=False,
+                with_metadata=True,
+                output_format='json',
+            )
+            # Also extract as HTML for nicely-tagged paragraphs
+            html_out = trafilatura.extract(
+                downloaded,
+                include_comments=False,
+                include_tables=True,
+                no_fallback=False,
+                with_metadata=False,
+                output_format='html',
+            )
+
+            author = ''
+            date   = ''
+            if meta_json:
+                try:
+                    meta = _json.loads(meta_json)
+                    author = meta.get('author') or ''
+                    date   = (meta.get('date') or '')[:10]
+                except Exception:
+                    pass
+
+            if html_out and html_out.strip():
+                result = {
+                    'html':   html_out,
+                    'author': author,
+                    'date':   date,
+                    'failed': False,
+                }
+
+    except Exception as exc:
+        logger.warning('fetch_article_content error for %s: %s', url, exc)
+
+    cache.set(cache_key, result, _CONTENT_CACHE_TTL)
+    return result
+
+
 # ── Categories ────────────────────────────────────────────────────────────────
 NEWSDATA_CATEGORIES = [
     'business', 'crime', 'domestic', 'education', 'entertainment',

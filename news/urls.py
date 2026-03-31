@@ -12,6 +12,7 @@ urlpatterns = [
     path('interact/', views.toggle_interaction, name='toggle_interaction'),
     path('preferences/', views.save_preferences, name='save_preferences'),
     path('article/', views.article_detail, name='article_detail'),
+    path('article/content/', views.article_content, name='article_content'),
     path('article/comment/', views.post_comment, name='post_comment'),
     path('article/comment/<int:pk>/delete/', views.delete_comment, name='delete_comment'),
 ]

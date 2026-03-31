@@ -10,6 +10,7 @@ from .models import SavedArticle, ArticleComment
 from .services import (
     NewsAggregatorService,
     ALL_CATEGORIES, CONTINENTS, POPULAR_COUNTRIES, SORT_OPTIONS,
+    fetch_article_content,
 )
 
 QUICK_TOPICS = ['politics', 'business', 'technology', 'sports', 'health',
@@ -342,6 +343,40 @@ def article_detail(request):
         'comment_count': comment_count,
         'detail_url':    detail_url,
     })
+
+
+@require_http_methods(['GET'])
+def article_content(request):
+    """
+    HTMX endpoint — scrapes and returns the full article body HTML.
+    Called lazily from the article detail page after the initial render.
+    Always returns HTTP 200 so HTMX always performs the innerHTML swap.
+    """
+    import logging as _logging
+    _log = _logging.getLogger(__name__)
+
+    article_url = request.GET.get('url', '').strip()
+    if not article_url:
+        return HttpResponse(
+            '<p class="text-sm nex-text-muted text-center py-4">No URL provided.</p>'
+        )
+
+    try:
+        data = fetch_article_content(article_url)
+        return render(request, 'news/partials/article_content.html', {
+            'content': data,
+            'source_url': article_url,
+        })
+    except Exception as exc:
+        _log.error('article_content view error for %s: %s', article_url, exc)
+        return HttpResponse(
+            '<p class="text-sm nex-text-muted text-center py-4">'
+            'Content could not be loaded. '
+            f'<a href="{article_url}" target="_blank" rel="noopener noreferrer" '
+            'class="text-blue-400 hover:underline">Read at source</a>.'
+            '</p>',
+            status=200,
+        )
 
 
 @login_required
