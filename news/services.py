@@ -19,7 +19,7 @@ Sources (all run in parallel):
 """
 import hashlib
 import logging
-import concurrent.futures
+import threading as _threading
 from pathlib import Path
 from datetime import datetime, timezone
 
@@ -45,84 +45,238 @@ _SCRAPE_HEADERS = {
 _CONTENT_CACHE_TTL = 6 * 3600  # 6 hours
 
 
+def _best_image_url(attrib: dict, base_url: str) -> str:
+    """
+    Return the best-resolution image URL for an <img> element.
+
+    Priority:
+      1. Highest-width entry in srcset  (or data-srcset)
+      2. data-src / data-lazy-src / data-original (lazy-load patterns)
+      3. Plain src attribute
+    All relative URLs are resolved against base_url.
+    """
+    from urllib.parse import urljoin
+
+    def _resolve(u: str) -> str:
+        if not u:
+            return ''
+        u = u.strip()
+        if u.startswith('//'):
+            return 'https:' + u
+        if not u.startswith(('http://', 'https://')):
+            return urljoin(base_url, u)
+        return u
+
+    def _parse_srcset(srcset: str) -> str:
+        """Return URL of the widest descriptor in a srcset string."""
+        best_url, best_w = '', 0
+        for part in srcset.split(','):
+            tokens = part.strip().split()
+            if not tokens:
+                continue
+            url = tokens[0]
+            w = 0
+            if len(tokens) >= 2:
+                desc = tokens[-1].lower()
+                try:
+                    if desc.endswith('w'):
+                        w = int(desc[:-1])
+                    elif desc.endswith('x'):
+                        w = int(float(desc[:-1]) * 1000)  # pseudo-width
+                except ValueError:
+                    pass
+            if w > best_w and url:
+                best_w, best_url = w, url
+        return _resolve(best_url) if best_url else ''
+
+    # Check srcset first (highest quality)
+    for attr in ('srcset', 'data-srcset'):
+        v = attrib.get(attr, '')
+        if v:
+            u = _parse_srcset(v)
+            if u:
+                return u
+
+    # Lazy-load patterns
+    for attr in ('data-src', 'data-lazy-src', 'data-original',
+                 'data-url', 'data-hi-res-src'):
+        v = attrib.get(attr, '').strip()
+        if v:
+            return _resolve(v)
+
+    # Plain src
+    return _resolve(attrib.get('src', ''))
+
+
 def _postprocess_article_html(html_str: str, base_url: str) -> str:
     """
     Post-process trafilatura's HTML output:
-      • Make relative image src attributes absolute using base_url
-      • Resolve lazy-load data-src / data-lazy-src / data-original → src
-      • Remove tracking pixels (width/height ≤ 2)
-      • Add loading="lazy" and decoding="async" to every <img>
-      • Wrap <table> elements in a scrollable <div> so they don't overflow
-    Uses lxml (installed as a trafilatura dependency).
+
+    Images
+      • Pick highest-resolution URL from srcset/data-src/src
+      • Make relative URLs absolute
+      • Strip publisher-set width/height/style (let CSS control size)
+      • Drop tracking pixels (explicit dimension ≤ 2px or ≤ 30px)
+      • Drop duplicate images (same src appearing twice)
+      • Add loading="lazy" decoding="async" and an onerror handler
+        that removes the surrounding <figure> on broken load
+
+    Captions
+      • Collect all <figcaption> text; remove any <p> whose text
+        is a close match — trafilatura sometimes duplicates captions
+        as plain paragraphs
+
+    Tables
+      • Wrap every <table> in a horizontally-scrollable <div>
     """
     if not html_str:
         return html_str
     try:
         from lxml import html as lhtml
-        from urllib.parse import urljoin
 
-        # lxml needs a single root; wrap fragments in a throwaway <div>
         root = lhtml.fromstring(f'<div>{html_str}</div>')
 
-        # ── Images ────────────────────────────────────────────────────────
-        for img in root.iter('img'):
-            attrib = img.attrib
-            # Prefer real src; fall back to lazy-load data attributes
-            src = (
-                attrib.get('src') or
-                attrib.get('data-src') or
-                attrib.get('data-lazy-src') or
-                attrib.get('data-original') or
-                attrib.get('data-url') or
-                ''
-            ).strip()
+        # ── 1. Collect caption texts for deduplication ────────────────────
+        caption_texts: set[str] = set()
+        for fc in root.iter('figcaption'):
+            t = (fc.text_content() or '').strip().lower()
+            if t:
+                caption_texts.add(t)
 
-            # Drop tracking pixels
+        # ── 2. Remove <p> elements whose text duplicates a caption ────────
+        for p in list(root.iter('p')):
+            t = (p.text_content() or '').strip().lower()
+            if t and t in caption_texts:
+                par = p.getparent()
+                if par is not None:
+                    par.remove(p)
+
+        # ── 3. Process images ─────────────────────────────────────────────
+        seen_srcs: set[str] = set()
+
+        for img in list(root.iter('img')):
+            attrib = img.attrib
+
+            # Reject tracking/spacer pixels by declared dimension
             try:
                 w = int(attrib.get('width', '999'))
                 h = int(attrib.get('height', '999'))
-                if w <= 2 or h <= 2:
-                    parent = img.getparent()
-                    if parent is not None:
-                        parent.remove(img)
+                if w <= 30 or h <= 30:
+                    _remove_node(img)
                     continue
             except ValueError:
                 pass
 
+            src = _best_image_url(dict(attrib), base_url)
+
             if not src:
-                parent = img.getparent()
-                if parent is not None:
-                    parent.remove(img)
+                _remove_node(img)
                 continue
 
-            # Make relative URLs absolute
-            if not src.startswith(('http://', 'https://', '//')):
-                src = urljoin(base_url, src)
-            elif src.startswith('//'):
-                src = 'https:' + src
+            # Remove duplicate images
+            if src in seen_srcs:
+                _remove_node(img)
+                continue
+            seen_srcs.add(src)
 
+            # Build clean attribute set
+            alt = attrib.get('alt', '')
+            img.attrib.clear()
             img.set('src', src)
+            img.set('alt', alt)
             img.set('loading', 'lazy')
             img.set('decoding', 'async')
+            # Remove the enclosing <figure> when the image fails to load
+            img.set('onerror',
+                    "var f=this.closest('figure')||this.parentElement;"
+                    "if(f)f.style.display='none';")
 
-            # Remove all data-* lazy-load attrs now that src is resolved
-            for attr in list(attrib):
-                if attr.startswith('data-'):
-                    del attrib[attr]
+        # ── 4. Remove empty <figure> elements left after image removal ────
+        for fig in list(root.iter('figure')):
+            if not list(fig.iter('img')) and not (fig.text_content() or '').strip():
+                _remove_node(fig)
 
-        # ── Tables → scrollable wrapper ───────────────────────────────────
+        # ── 5. Wrap tables in scrollable container ────────────────────────
         for table in list(root.iter('table')):
-            parent = table.getparent()
-            if parent is None:
+            par = table.getparent()
+            if par is None:
                 continue
-            idx = list(parent).index(table)
+            idx = list(par).index(table)
             wrapper = lhtml.Element('div')
             wrapper.set('class', 'article-table-wrap')
-            parent.remove(table)
+            par.remove(table)
             wrapper.append(table)
-            parent.insert(idx, wrapper)
+            par.insert(idx, wrapper)
 
-        # Serialise back, stripping our wrapper <div> tags
+        # ── 6. Normalise paragraphs ───────────────────────────────────────
+        # Trafilatura sometimes emits content in <div> wrappers or as bare
+        # text nodes instead of <p> elements.  Walk every node and:
+        #   a) rename bare/unstyled <div> containers → <p>
+        #   b) collect text that lives outside any block element and wrap it
+        #   c) split on consecutive <br> tags → separate <p> elements
+        _BLOCK = {'p','h1','h2','h3','h4','h5','h6','ul','ol','li',
+                  'blockquote','figure','table','pre','div','section',
+                  'article','header','footer','aside'}
+
+        def _is_inline_or_text(el):
+            return el.tag not in _BLOCK
+
+        # a) Convert <div> that contain only inline content → <p>
+        for div in list(root.iter('div')):
+            if div.get('class') in ('article-table-wrap',):
+                continue
+            has_block_child = any(c.tag in _BLOCK for c in div)
+            if not has_block_child:
+                div.tag = 'p'
+
+        # b) Wrap any remaining root.text / element.tail in <p> elements
+        def _wrap_tail(parent):
+            children = list(parent)
+            # Handle parent.text (text before first child)
+            if (parent.text or '').strip():
+                p = lhtml.Element('p')
+                p.text = parent.text
+                parent.text = None
+                parent.insert(0, p)
+                children = list(parent)  # refresh
+
+            for i, child in enumerate(children):
+                if (child.tail or '').strip():
+                    p = lhtml.Element('p')
+                    p.text = child.tail
+                    child.tail = None
+                    parent.insert(i + 1, p)
+
+        _wrap_tail(root)
+
+        # c) Split on double-<br> patterns inside <p> elements
+        for p in list(root.iter('p')):
+            brs = [c for c in p if c.tag == 'br']
+            if len(brs) < 2:
+                continue
+            # Serialise → split on <br><br> → re-parse as sibling <p>s
+            raw = lhtml.tostring(p, encoding='unicode', method='html')
+            # Replace 2+ consecutive <br> with a paragraph separator marker
+            import re as _re
+            raw_inner = _re.sub(r'<p[^>]*>', '', raw)
+            raw_inner = _re.sub(r'</p>', '', raw_inner)
+            raw_inner = _re.sub(r'(<br\s*/?>){2,}', '\x00', raw_inner,
+                                flags=_re.IGNORECASE)
+            if '\x00' not in raw_inner:
+                continue
+            parts = [t.strip() for t in raw_inner.split('\x00') if t.strip()]
+            if len(parts) < 2:
+                continue
+            parent = p.getparent()
+            if parent is None:
+                continue
+            idx = list(parent).index(p)
+            parent.remove(p)
+            for offset, part in enumerate(parts):
+                np = lhtml.fromstring(f'<p>{part}</p>')
+                parent.insert(idx + offset, np)
+
+        # Serialise (strip the wrapper <div>)
         inner = (root.text or '') + ''.join(
             lhtml.tostring(child, encoding='unicode', method='html')
             for child in root
@@ -132,6 +286,13 @@ def _postprocess_article_html(html_str: str, base_url: str) -> str:
     except Exception as exc:
         logger.debug('_postprocess_article_html error: %s', exc)
         return html_str
+
+
+def _remove_node(el) -> None:
+    """Remove *el* from its parent; no-op if already detached."""
+    par = el.getparent()
+    if par is not None:
+        par.remove(el)
 
 
 def fetch_article_content(url: str) -> dict:
@@ -149,7 +310,7 @@ def fetch_article_content(url: str) -> dict:
     Results are cached in Django's cache for _CONTENT_CACHE_TTL seconds so
     repeated visits to the same article page don't hammer the origin server.
     """
-    cache_key = 'article_content_v2_' + hashlib.md5(url.encode()).hexdigest()
+    cache_key = 'article_content_v4_' + hashlib.md5(url.encode()).hexdigest()
     cached = cache.get(cache_key)
     if cached is not None:
         return cached
@@ -720,13 +881,30 @@ def _fetch_rss(filters: dict) -> list[dict]:
             logger.warning('RSS %s failed: %s', feed_meta['source'], e)
         return feed_articles
 
-    with concurrent.futures.ThreadPoolExecutor(max_workers=len(feeds_to_fetch)) as pool:
-        futures = [pool.submit(_parse_one, f) for f in feeds_to_fetch]
-        for fut in concurrent.futures.as_completed(futures):
-            try:
-                articles.extend(fut.result())
-            except Exception:
-                pass
+    _rss_results: list = []
+    _rss_lock = _threading.Lock()
+
+    def _run_rss(feed_meta):
+        try:
+            result = _parse_one(feed_meta)
+            with _rss_lock:
+                _rss_results.extend(result)
+        except Exception:
+            pass
+
+    _rss_threads = [_threading.Thread(target=_run_rss, args=(f,), daemon=True)
+                    for f in feeds_to_fetch]
+    try:
+        for t in _rss_threads:
+            t.start()
+        for t in _rss_threads:
+            t.join(timeout=20)
+    except RuntimeError:
+        # Python 3.14: interpreter shutting down during dev-server reload.
+        # Fall back to sequential so the request still completes.
+        for f in feeds_to_fetch:
+            _run_rss(f)
+    articles.extend(_rss_results)
 
     return articles
 
@@ -803,17 +981,38 @@ class NewsAggregatorService:
             'rss':        lambda: _fetch_rss(filters),
         }
 
-        with concurrent.futures.ThreadPoolExecutor(max_workers=len(fetchers)) as pool:
-            future_map = {pool.submit(fn): name for name, fn in fetchers.items()}
-            for future in concurrent.futures.as_completed(future_map):
-                name = future_map[future]
-                try:
-                    results = future.result()
-                    if results:
-                        all_articles.extend(results)
-                        sources_used.append(NewsAggregatorService.SOURCE_LABELS[name])
-                except Exception as e:
-                    logger.error('Source %s raised exception: %s', name, e)
+        _src_lock    = _threading.Lock()
+        _src_results : dict[str, list] = {}
+
+        def _run_source(name, fn):
+            try:
+                res = fn()
+                with _src_lock:
+                    _src_results[name] = res or []
+            except Exception as exc:
+                logger.error('Source %s raised exception: %s', name, exc)
+                with _src_lock:
+                    _src_results[name] = []
+
+        _src_threads = [
+            _threading.Thread(target=_run_source, args=(n, fn), daemon=True)
+            for n, fn in fetchers.items()
+        ]
+        try:
+            for t in _src_threads:
+                t.start()
+            for t in _src_threads:
+                t.join(timeout=25)
+        except RuntimeError:
+            # Python 3.14: interpreter shutting down during dev-server reload.
+            # Fall back to sequential so the request still completes.
+            for n, fn in fetchers.items():
+                _run_source(n, fn)
+
+        for name, results in _src_results.items():
+            if results:
+                all_articles.extend(results)
+                sources_used.append(NewsAggregatorService.SOURCE_LABELS[name])
 
         # Merge, deduplicate, sort
         all_articles = _deduplicate(all_articles)

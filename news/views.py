@@ -363,9 +363,19 @@ def article_content(request):
 
     try:
         data = fetch_article_content(article_url)
+
+        # Reading-time estimate: strip HTML tags, count words, ~230 wpm
+        read_minutes = None
+        if data and not data.get('failed') and data.get('html'):
+            import re as _re
+            plain = _re.sub(r'<[^>]+>', ' ', data['html'])
+            word_count = len(plain.split())
+            read_minutes = max(1, round(word_count / 230))
+
         return render(request, 'news/partials/article_content.html', {
-            'content': data,
-            'source_url': article_url,
+            'content':      data,
+            'source_url':   article_url,
+            'read_minutes': read_minutes,
         })
     except Exception as exc:
         _log.error('article_content view error for %s: %s', article_url, exc)

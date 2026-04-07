@@ -1,6 +1,183 @@
 {% extends "base.html" %}
 {% load static %}
 
+{% block extra_head %}
+<style>
+/*
+ * Article body typography — injected directly so it ALWAYS wins over
+ * Tailwind CDN's dynamically-injected preflight (p,h1-h6 { margin:0 }).
+ * All spacing rules carry !important for the same reason.
+ */
+.article-body {
+  color: var(--nex-text-secondary);
+  font-size: 1.0625rem;
+  line-height: 1.9;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+.article-body p {
+  margin-top: 0 !important;
+  margin-bottom: 1.6rem !important;
+}
+.article-body p:last-child { margin-bottom: 0 !important; }
+
+.article-body h1,.article-body h2,.article-body h3,
+.article-body h4,.article-body h5,.article-body h6 {
+  color: var(--nex-text);
+  font-weight: 700;
+  line-height: 1.3;
+  margin-top: 2.25rem !important;
+  margin-bottom: 0.9rem !important;
+}
+.article-body :is(h1,h2,h3,h4,h5,h6):first-child { margin-top: 0 !important; }
+.article-body h1 { font-size: 1.6rem; }
+.article-body h2 { font-size: 1.35rem; border-bottom: 1px solid var(--nex-border); padding-bottom:.35rem; }
+.article-body h3 { font-size: 1.15rem; }
+.article-body h4 { font-size: 1.05rem; }
+.article-body h5 { font-size: .95rem; }
+.article-body h6 { font-size: .875rem; text-transform:uppercase; letter-spacing:.07em; color:var(--nex-text-muted); }
+
+.article-body ul,
+.article-body ol {
+  padding-left: 1.65rem !important;
+  margin-top: 0.25rem !important;
+  margin-bottom: 1.6rem !important;
+}
+.article-body ul  { list-style-type: disc; }
+.article-body ol  { list-style-type: decimal; }
+.article-body ul ul { list-style-type: circle; }
+.article-body li  { margin-bottom: .45rem; padding-left: .2rem; }
+
+.article-body blockquote {
+  border-left: 4px solid #3b82f6;
+  background: var(--nex-bg-secondary);
+  border-radius: 0 .6rem .6rem 0;
+  padding: 1rem 1.35rem;
+  margin: 2rem 0 !important;
+  color: var(--nex-text-muted);
+  font-style: italic;
+  font-size: 1.05rem;
+  line-height: 1.75;
+}
+.article-body blockquote p  { margin-bottom: .4rem !important; }
+.article-body blockquote p:last-child { margin-bottom: 0 !important; }
+
+.article-body hr {
+  border: none !important;
+  border-top: 1px solid var(--nex-border) !important;
+  margin: 2.5rem 0 !important;
+}
+
+.article-body a {
+  color: #60a5fa;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+.article-body a:hover { color: #93c5fd; }
+.article-body strong,.article-body b { color: var(--nex-text); font-weight: 700; }
+.article-body em,.article-body i     { font-style: italic; }
+
+/* Images */
+.article-body img {
+  display: block !important;
+  max-width: 100% !important;
+  width: auto !important;
+  height: auto !important;
+  border-radius: .75rem;
+  margin: 2rem auto !important;
+  box-shadow: 0 6px 24px rgba(0,0,0,.28);
+  background: var(--nex-bg-secondary);
+}
+.article-body img[src=''],
+.article-body img:not([src]) { display: none !important; }
+
+.article-body figure {
+  margin: 2rem 0 !important;
+  text-align: center;
+}
+.article-body figure img { margin: 0 auto 0 !important; }
+.article-body figcaption {
+  font-size: .8rem;
+  color: var(--nex-text-muted);
+  font-style: italic;
+  line-height: 1.55;
+  padding: .5rem 1rem .55rem;
+  background: var(--nex-bg-secondary);
+  border: 1px solid var(--nex-border);
+  border-top: none;
+  border-radius: 0 0 .75rem .75rem;
+  text-align: left;
+}
+
+/* Tables */
+.article-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+  margin-bottom: 1.75rem !important;
+  border-radius: .6rem;
+  border: 1px solid var(--nex-border);
+}
+.article-body table { width:100%; border-collapse:collapse; font-size:.9rem; min-width:360px; }
+.article-body thead tr { background: var(--nex-bg-secondary); }
+.article-body th {
+  color: var(--nex-text); font-weight:600;
+  padding: .65rem 1rem;
+  border-bottom: 2px solid var(--nex-border);
+  text-align: left; white-space:nowrap;
+}
+.article-body td {
+  padding: .6rem 1rem;
+  border-bottom: 1px solid var(--nex-border);
+  vertical-align: top;
+}
+.article-body tbody tr:last-child td { border-bottom: none; }
+.article-body tbody tr:hover { background: var(--nex-bg-hover); }
+
+/* Code */
+.article-body code {
+  background: var(--nex-bg-secondary);
+  color: #f9a8d4;
+  padding: .15rem .45rem;
+  border-radius: .3rem;
+  font-size: .875em;
+  font-family: 'Courier New', Consolas, monospace;
+}
+.article-body pre {
+  background: var(--nex-bg-secondary);
+  border: 1px solid var(--nex-border);
+  border-radius: .6rem;
+  padding: 1rem 1.25rem;
+  overflow-x: auto;
+  margin-bottom: 1.75rem !important;
+  font-size: .875rem; line-height: 1.65;
+}
+.article-body pre code { background:none; color:var(--nex-text-secondary); padding:0; }
+
+/* Light mode */
+[data-theme="light"] .article-body           { color: #374151; }
+[data-theme="light"] .article-body h1,
+[data-theme="light"] .article-body h2,
+[data-theme="light"] .article-body h3,
+[data-theme="light"] .article-body h4,
+[data-theme="light"] .article-body h5,
+[data-theme="light"] .article-body h6,
+[data-theme="light"] .article-body strong,
+[data-theme="light"] .article-body b         { color: #111827; }
+[data-theme="light"] .article-body h2        { border-bottom-color: #e5e7eb; }
+[data-theme="light"] .article-body a         { color: #2563eb; }
+[data-theme="light"] .article-body a:hover   { color: #1d4ed8; }
+[data-theme="light"] .article-body blockquote{ background:#f3f4f6; color:#6b7280; }
+[data-theme="light"] .article-body figcaption{ background:#f9fafb; color:#6b7280; border-color:#e5e7eb; }
+[data-theme="light"] .article-body img       { box-shadow: 0 4px 16px rgba(0,0,0,.1); }
+[data-theme="light"] .article-body code      { color:#be185d; background:#fce7f3; }
+[data-theme="light"] .article-body thead tr  { background:#f3f4f6; }
+[data-theme="light"] .article-body th        { color:#111827; border-bottom-color:#d1d5db; }
+[data-theme="light"] .article-body td        { border-bottom-color:#e5e7eb; }
+[data-theme="light"] .article-table-wrap     { border-color:#e5e7eb; }
+</style>
+{% endblock %}
+
 {% block title %}{{ article.title|truncatechars:70 }} — Epicenter Nexus{% endblock %}
 {% block meta_description %}{{ article.excerpt|truncatechars:160 }}{% endblock %}
 {% block og_type %}article{% endblock %}
@@ -371,13 +548,97 @@
     if (e.key === 'Escape') nexusCloseShare();
   });
 
-  // Remove article skeleton once content has been injected
-  document.body.addEventListener('htmx:afterSwap', function(e){
-    if (e.detail.target && e.detail.target.id === 'article-body-target') {
+  /* ── Article body spacing ───────────────────────────────────────────────
+     Uses MutationObserver instead of htmx:afterSwap event listener.
+     MutationObserver fires the instant the DOM is modified — no dependency
+     on HTMX event bubbling, version behaviour, or CSS file loading order.
+  ──────────────────────────────────────────────────────────────────────── */
+  (function(){
+    var targetEl = document.getElementById('article-body-target');
+    if (!targetEl) return;
+
+    function applyArticleSpacing(container) {
+      /* Remove loading skeleton */
       var sk = document.getElementById('article-loading-skeleton');
       if (sk) sk.remove();
+
+      var body = container.querySelector('.article-body');
+      if (!body) return;
+
+      /* Every element we might ever need to space */
+      var BLOCK_TAGS = new Set([
+        'P','DIV','SECTION','ARTICLE','BLOCKQUOTE',
+        'PRE','UL','OL','FIGURE','TABLE','HR','ADDRESS','DETAILS'
+      ]);
+      var GAP  = '1.5rem';
+      var HBOT = '0.8rem';
+      var HTOP = '1.8rem';
+
+      /* Direct children of .article-body */
+      Array.from(body.children).forEach(function(el) {
+        var tag = el.tagName;
+        if (/^H[1-6]$/.test(tag)) {
+          el.style.setProperty('margin-top',    HTOP, 'important');
+          el.style.setProperty('margin-bottom', HBOT, 'important');
+        } else if (tag === 'FIGURE' || tag === 'IMG') {
+          el.style.setProperty('margin-top',    '2rem', 'important');
+          el.style.setProperty('margin-bottom', '2rem', 'important');
+        } else if (BLOCK_TAGS.has(tag)) {
+          el.style.setProperty('margin-top',    '0',  'important');
+          el.style.setProperty('margin-bottom', GAP,  'important');
+        }
+      });
+
+      /* Also target every <p> anywhere inside (nested in divs etc.) */
+      body.querySelectorAll('p').forEach(function(p) {
+        p.style.setProperty('margin-top',    '0',  'important');
+        p.style.setProperty('margin-bottom', GAP,  'important');
+      });
+
+      /* Lists */
+      body.querySelectorAll('ul,ol').forEach(function(el) {
+        el.style.setProperty('margin-bottom', GAP,      'important');
+        el.style.setProperty('padding-left',  '1.6rem', 'important');
+      });
+      body.querySelectorAll('li').forEach(function(el) {
+        el.style.setProperty('margin-bottom', '0.45rem', 'important');
+      });
+
+      /* Headings nested inside containers */
+      body.querySelectorAll('h1,h2,h3,h4,h5,h6').forEach(function(el) {
+        el.style.setProperty('margin-top',    HTOP, 'important');
+        el.style.setProperty('margin-bottom', HBOT, 'important');
+      });
+
+      /* Images: block display, centred, constrained */
+      body.querySelectorAll('img').forEach(function(img) {
+        img.style.setProperty('display',        'block',   'important');
+        img.style.setProperty('max-width',      '100%',    'important');
+        img.style.setProperty('height',         'auto',    'important');
+        img.style.setProperty('border-radius',  '0.75rem', 'important');
+        img.style.setProperty('margin',         '2rem auto','important');
+        img.style.setProperty('box-shadow',     '0 4px 24px rgba(0,0,0,.28)', 'important');
+      });
     }
-  });
+
+    /* Observe #article-body-target for any child additions (HTMX swap) */
+    var obs = new MutationObserver(function(mutations) {
+      for (var i = 0; i < mutations.length; i++) {
+        if (mutations[i].addedNodes.length > 0) {
+          applyArticleSpacing(targetEl);
+          obs.disconnect();   /* run once then stop */
+          return;
+        }
+      }
+    });
+    obs.observe(targetEl, { childList: true });
+
+    /* Safety net: if content is already there (cached / fast response) */
+    if (targetEl.children.length > 0) {
+      applyArticleSpacing(targetEl);
+      obs.disconnect();
+    }
+  })();
 
   // If the content request fails (4xx/5xx), replace skeleton with a message
   document.body.addEventListener('htmx:responseError', function(e){

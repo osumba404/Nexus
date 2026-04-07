@@ -1,60 +1,86 @@
 {% if content.failed %}
-{# ── Could not extract content ──────────────────────────────────────────── #}
-<div class="flex flex-col items-center justify-center py-12 text-center gap-4">
-  <div class="w-16 h-16 rounded-full flex items-center justify-center" style="background:var(--nex-bg-secondary)">
-    <svg class="w-8 h-8 opacity-40 nex-text-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+{# ── Extraction failed ─────────────────────────────────────────────────── #}
+<div class="flex flex-col items-center justify-center py-14 text-center gap-5">
+  <div class="w-16 h-16 rounded-full flex items-center justify-center"
+       style="background:var(--nex-bg-secondary)">
+    <svg class="w-7 h-7 opacity-40" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+         style="color:var(--nex-text-muted)">
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
-            d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+            d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0
+               001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
     </svg>
   </div>
   <div>
-    <p class="font-semibold nex-text mb-1">Full text unavailable</p>
-    <p class="text-sm nex-text-muted max-w-xs leading-relaxed">
-      This article may be behind a paywall, require JavaScript, or the
-      publisher blocks automated access.
+    <p class="font-semibold mb-1" style="color:var(--nex-text)">
+      Full text unavailable
+    </p>
+    <p class="text-sm leading-relaxed" style="color:var(--nex-text-muted); max-width:22rem">
+      This article may be behind a paywall, require JavaScript,
+      or the publisher blocks automated access.
     </p>
   </div>
   <a href="{{ source_url }}" target="_blank" rel="noopener noreferrer"
-     class="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-white transition-colors"
-     style="background:#2563eb">
+     class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold
+            text-white transition-all hover:opacity-90 active:scale-95"
+     style="background:linear-gradient(135deg,#2563eb,#1d4ed8)">
     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-            d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+            d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4
+               M14 4h6m0 0v6m0-6L10 14"/>
     </svg>
     Read full article at source
   </a>
 </div>
 
 {% else %}
-{# ── Full article content ─────────────────────────────────────────────────── #}
+{# ── Article content ──────────────────────────────────────────────────── #}
 
-{# Meta bar: author + date (only when available) #}
+{# ── Meta bar ─────────────────────────────────────────────────────────── #}
 {% if content.author or content.date %}
-<div class="flex flex-wrap items-center gap-x-5 gap-y-2 mb-6 pb-5" style="border-bottom:1px solid var(--nex-border)">
+<div class="flex flex-wrap items-center gap-x-5 gap-y-2 mb-7 pb-6"
+     style="border-bottom:1px solid var(--nex-border)">
+
   {% if content.author %}
-  <span class="flex items-center gap-2 text-sm nex-text-muted">
-    <svg class="w-4 h-4 text-blue-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-            d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
-    </svg>
-    <span class="font-medium nex-text">{{ content.author }}</span>
+  <span class="flex items-center gap-2 text-sm" style="color:var(--nex-text-muted)">
+    <span class="inline-flex items-center justify-center w-7 h-7 rounded-full flex-shrink-0"
+          style="background:var(--nex-bg-secondary)">
+      <svg class="w-3.5 h-3.5 text-blue-400" fill="currentColor" viewBox="0 0 24 24">
+        <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12
+                 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/>
+      </svg>
+    </span>
+    <span class="font-medium" style="color:var(--nex-text)">{{ content.author }}</span>
   </span>
   {% endif %}
+
   {% if content.date %}
-  <span class="flex items-center gap-2 text-sm nex-text-muted">
-    <svg class="w-4 h-4 text-blue-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+  <span class="flex items-center gap-1.5 text-sm" style="color:var(--nex-text-muted)">
+    <svg class="w-3.5 h-3.5 text-blue-400 flex-shrink-0" fill="none"
+         stroke="currentColor" viewBox="0 0 24 24">
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-            d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+            d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5
+               a2 2 0 00-2 2v12a2 2 0 002 2z"/>
     </svg>
     {{ content.date }}
   </span>
   {% endif %}
+
+  {# Reading-time estimate (computed in view) #}
+  {% if read_minutes %}
+  <span class="flex items-center gap-1.5 text-sm" style="color:var(--nex-text-muted)">
+    <svg class="w-3.5 h-3.5 text-blue-400 flex-shrink-0" fill="none"
+         stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+    </svg>
+    {{ read_minutes }}&nbsp;min read
+  </span>
+  {% endif %}
+
 </div>
 {% endif %}
 
-{# The actual article HTML — all tags render as-is via |safe #}
-<div class="article-body">
-  {{ content.html|safe }}
-</div>
+{# ── Body ─────────────────────────────────────────────────────────────── #}
+<div class="article-body">{{ content.html|safe }}</div>
 
 {% endif %}
