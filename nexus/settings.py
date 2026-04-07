@@ -3,6 +3,7 @@ Django settings for Epicenter Nexus project.
 """
 
 import os
+import tempfile
 from pathlib import Path
 import environ
 
@@ -55,6 +56,8 @@ INTERNAL_IPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'nexus.middleware.RateLimitMiddleware',       # IP-based rate limiting
+    'nexus.middleware.SlowRequestMiddleware',     # log slow requests
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -91,6 +94,11 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': BASE_DIR / 'db.sqlite3',
+        'OPTIONS': {
+            'timeout': 20,   # seconds to wait for write lock before raising OperationalError
+        },
+        # Reuse DB connections across requests in the same thread (reduces overhead)
+        'CONN_MAX_AGE': env.int('CONN_MAX_AGE', default=60),
     }
 }
 
@@ -124,11 +132,58 @@ MEDIA_ROOT = BASE_DIR / 'media'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Caching
+# File-based cache stored in the OS temp directory (avoids OneDrive/cloud-sync
+# file-locking conflicts).  Shared across all Waitress worker processes on the
+# same machine.  Switch to RedisCache for multi-machine deployments.
 CACHES = {
     'default': {
-        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
-        'LOCATION': 'nexus-cache',
+        'BACKEND':  'django.core.cache.backends.filebased.FileBasedCache',
+        'LOCATION': os.path.join(tempfile.gettempdir(), 'nexus-cache'),
+        'OPTIONS': {
+            'MAX_ENTRIES': 5000,
+        },
     }
+}
+
+# ── Logging ───────────────────────────────────────────────────────────────────
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{asctime} [{levelname}] {name}: {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'verbose',
+        },
+        'file': {
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': str(BASE_DIR / 'logs' / 'nexus.log'),
+            'maxBytes': 10 * 1024 * 1024,   # 10 MB
+            'backupCount': 5,
+            'formatter': 'verbose',
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': 'WARNING',
+    },
+    'loggers': {
+        'nexus.requests': {
+            'handlers': ['console', 'file'],
+            'level': 'WARNING',
+            'propagate': False,
+        },
+        'django.request': {
+            'handlers': ['console', 'file'],
+            'level': 'ERROR',
+            'propagate': False,
+        },
+    },
 }
 
 # Authentication

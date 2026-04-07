@@ -319,8 +319,13 @@ def article_detail(request):
         article['liked']      = SavedArticle.LIKE     in qs
         article['bookmarked'] = SavedArticle.BOOKMARK in qs
 
-    comments       = ArticleComment.objects.filter(article_url=article_url).select_related('user')
-    comment_count  = comments.count()
+    try:
+        comments      = ArticleComment.objects.filter(article_url=article_url).select_related('user')
+        comment_count = comments.count()
+    except Exception:
+        # Table may not exist yet if migrations haven't been run.
+        comments      = []
+        comment_count = 0
 
     # Build the shareable link for this detail page
     from urllib.parse import urlencode as _urlencode
