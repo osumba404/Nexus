@@ -433,3 +433,6 @@
 2026-04-09 16:41:55,744 [WARNING] nexus.requests: Slow request: GET /feed/ took 13.08s (status 200)
 2026-04-09 21:58:58,451 [WARNING] nexus.requests: Slow request: GET /feed/ took 2.36s (status 200)
 2026-04-09 23:04:48,577 [WARNING] nexus.requests: Slow request: GET / took 27.16s (status 200)
+2026-04-09 23:29:50,079 [WARNING] nexus.requests: Slow request: GET /feed/ took 15.66s (status 200)
+2026-04-09 23:29:50,490 [WARNING] nexus.requests: Slow request: GET /trending/ took 16.05s (status 200)
+2026-04-09 23:29:50,631 [WARNING] nexus.requests: Slow request: GET / took 12.62s (status 200)
