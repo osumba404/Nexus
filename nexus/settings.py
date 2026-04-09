@@ -25,7 +25,14 @@ SECRET_KEY = env('SECRET_KEY', default='django-insecure-#x7jfuy-b#qk193mxkov=1%m
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = env('DEBUG')
 
-ALLOWED_HOSTS = env('ALLOWED_HOSTS')
+# ALLOWED_HOSTS = env('ALLOWED_HOSTS')
+
+# ALLOWED_HOSTS = [
+#     host.strip()
+#     for host in os.environ.get("ALLOWED_HOSTS", "").split(",")
+#     if host.strip()
+# ]
+ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=[])
 
 
 # Application definition
